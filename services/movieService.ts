@@ -75,6 +75,20 @@ export async function fetchGenres(): Promise<string[]> {
   return genres.map((g) => g.name);
 }
 
+let genreListPromise: Promise<TmdbGenre[]> | null = null;
+function getGenresCached(): Promise<TmdbGenre[]> {
+  if (!genreListPromise) genreListPromise = tmdb.getGenres();
+  return genreListPromise;
+}
+
+export async function fetchMoviesByGenre(genreName: string, page = 1): Promise<AppMovie[]> {
+  const genres = await getGenresCached();
+  const id = genres.find((genre) => genre.name === genreName)?.id;
+  if (!id) return [];
+  const movies = await tmdb.getDiscover(id, page);
+  return movies.map((movie) => mapMovie(movie, genres));
+}
+
 export async function fetchRecommendations(movieId: string): Promise<AppMovie[]> {
   const [movies, allGenres] = await Promise.all([
     tmdb.request<TmdbMovie[]>(`/movie/${movieId}/recommendations`, { page: '1' }),

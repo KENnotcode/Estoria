@@ -47,3 +47,7 @@ CLAUDE.md
 AGENTS.md
 
 PAG EXPORT.TXT
+
+eslint.config.js
+.gitignore
+.env

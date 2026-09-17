@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ScrollView as ScrollViewType } from 'react-native';
 import { ActivityIndicator, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { MovieCard } from '../../../components/MovieCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { SectionHeader } from '../../../components/SectionHeader';
 import { useColors } from '../../../hooks/useColors';
-import { usePopularMovies, useTopRatedMovies, useTrendingMovies } from '../../../hooks/useMovies';
+import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies } from '../../../hooks/useMovies';
 
 const meridianImage = require('../../../assets/images/poster-meridian.jpg');
 
@@ -53,23 +53,12 @@ export default function HomeScreen() {
     (carouselRef.current as any)?.scrollTo?.({ x: (hasLoop ? realIndex + 1 : realIndex) * itemWidth, animated });
   };
 
-  const allMovies = useMemo(() => {
-    const seen = new Set<string>();
-    return [...popular, ...trending, ...topRated].filter((movie) => {
-      if (seen.has(movie.id)) return false;
-      seen.add(movie.id);
-      return true;
-    });
-  }, [popular, trending, topRated]);
-
-  const moviesByCategory = useMemo(
-    () =>
-      CATEGORIES.map((category) => ({
-        ...category,
-        movies: allMovies.filter((movie) => movie.genres.includes(category.genre)).slice(0, 6),
-      })),
-    [allMovies],
-  );
+  const categoryResults = useCategoryMovies(CATEGORIES);
+  const moviesByCategory = CATEGORIES.map((category, index) => ({
+    label: category.label,
+    genre: category.genre,
+    movies: (categoryResults[index]?.data ?? []).slice(0, 6),
+  }));
 
   const loading = popularLoading || trendingLoading || topRatedLoading;
   const error = popularError || trendingError || topRatedError;

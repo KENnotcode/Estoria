@@ -82,6 +82,13 @@ export class TmdbClient {
     );
   }
 
+  getDiscover(genreId: number, page = 1): Promise<TmdbMovie[]> {
+    return this.list('/discover/movie', page, {
+      with_genres: String(genreId),
+      sort_by: 'popularity.desc',
+    });
+  }
+
   private async list(
     endpoint: string,
     page: number,

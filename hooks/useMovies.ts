@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchGenres, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTopRated, fetchTrending } from '../services/movieService';
+import { useQueries, useQuery } from '@tanstack/react-query';
+import { fetchGenres, fetchMoviesByGenre, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTopRated, fetchTrending } from '../services/movieService';
 import type { AppMovie } from '../types/movie';
 
 export const MOVIE_QUERY_KEYS = {
@@ -9,6 +9,7 @@ export const MOVIE_QUERY_KEYS = {
   topRated: ['movies', 'topRated'] as const,
   search: (query: string) => ['movies', 'search', query] as const,
   genres: ['genres'] as const,
+  moviesByGenre: (genre: string, page = 1) => ['movies', 'byGenre', genre, page] as const,
   details: (id: string) => ['movies', 'details', id] as const,
   recommendations: (id: string) => ['movies', 'recommendations', id] as const,
 };
@@ -59,6 +60,26 @@ export function useGenres() {
     queryKey: MOVIE_QUERY_KEYS.genres,
     queryFn: fetchGenres,
     staleTime: 1000 * 60 * 30,
+  });
+}
+
+export function useMoviesByGenre(genre: string, page = 1) {
+  return useQuery({
+    queryKey: MOVIE_QUERY_KEYS.moviesByGenre(genre, page),
+    queryFn: () => fetchMoviesByGenre(genre, page),
+    enabled: genre !== 'All',
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useCategoryMovies(categories: { label: string; genre: string }[]) {
+  return useQueries({
+    queries: categories.map((category) => ({
+      queryKey: MOVIE_QUERY_KEYS.moviesByGenre(category.genre),
+      queryFn: () => fetchMoviesByGenre(category.genre),
+      enabled: !!category.genre,
+      staleTime: 1000 * 60 * 10,
+    })),
   });
 }
 

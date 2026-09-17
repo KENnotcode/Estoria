@@ -6,7 +6,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { useColors } from '../../../hooks/useColors';
-import { useGenres, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
+import { useGenres, useMoviesByGenre, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function SearchScreen() {
@@ -17,11 +17,12 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const selectedGenre = genre ?? 'All';
 
-  const { data: popular = [], isLoading: popularLoading } = usePopularMovies();
-  const { data: searchResults = [], isLoading: searchLoading, error, refetch } = useSearchMovies(query);
+  const { data: popular = [], isLoading: popularLoading, refetch: refetchPopular } = usePopularMovies();
+  const { data: searchResults = [], isLoading: searchLoading, error: searchError, refetch } = useSearchMovies(query);
   const { data: genres = [] } = useGenres();
+  const { data: genreMovies = [], isLoading: genreLoading, error: genreError, refetch: refetchGenre } = useMoviesByGenre(selectedGenre);
 
-  const baseResults = query.trim() ? searchResults : popular;
+  const baseResults = query.trim() ? searchResults : selectedGenre !== 'All' ? genreMovies : popular;
   const filteredMovies = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return baseResults.filter((movie) => {
@@ -32,7 +33,8 @@ export default function SearchScreen() {
   }, [query, selectedGenre, baseResults]);
 
   const genreList = ['All', ...genres];
-  const loading = query.trim() ? searchLoading : popularLoading;
+  const loading = query.trim() ? searchLoading : selectedGenre !== 'All' ? genreLoading : popularLoading;
+  const error = genreError || searchError;
 
   if (error) {
     return (
@@ -41,7 +43,11 @@ export default function SearchScreen() {
           title="Could not search movies"
           message="Check your internet connection and try again."
           actionLabel="Retry"
-          onAction={refetch}
+          onAction={() => {
+            if (query.trim()) refetch();
+            else if (selectedGenre !== 'All') refetchGenre();
+            else refetchPopular();
+          }}
           icon="alert-triangle"
         />
       </View>
