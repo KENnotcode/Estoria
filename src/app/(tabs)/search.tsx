@@ -7,14 +7,15 @@ import { MovieCard } from '../../../components/MovieCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { useColors } from '../../../hooks/useColors';
 import { useGenres, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function SearchScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { genre } = useLocalSearchParams<{ genre?: string }>();
   const [query, setQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('All');
+  const selectedGenre = genre ?? 'All';
 
   const { data: popular = [], isLoading: popularLoading } = usePopularMovies();
   const { data: searchResults = [], isLoading: searchLoading, error, refetch } = useSearchMovies(query);
@@ -61,7 +62,7 @@ export default function SearchScreen() {
           <View>
             <View style={styles.titleRow}><View><Text style={[styles.kicker, { color: colors.primary }]}>THE LIBRARY</Text><Text style={[styles.title, { color: colors.foreground }]}>Find your next story</Text></View><Feather name="search" size={23} color={colors.mutedForeground} /></View>
             <SearchBar value={query} onChangeText={setQuery} />
-            <FlatList data={genreList} horizontal showsHorizontalScrollIndicator={false} keyExtractor={(item) => item} contentContainerStyle={styles.genreList} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => setSelectedGenre(item)} style={[styles.genre, { backgroundColor: selectedGenre === item ? colors.primary : colors.card }]}><Text style={[styles.genreText, { color: selectedGenre === item ? colors.primaryForeground : colors.mutedForeground }]}>{item}</Text></Pressable>} />
+            <FlatList data={genreList} horizontal showsHorizontalScrollIndicator={false} keyExtractor={(item) => item} contentContainerStyle={styles.genreList} renderItem={({ item }) => <Pressable accessibilityRole="button"               onPress={() => router.setParams({ genre: item })} style={[styles.genre, { backgroundColor: selectedGenre === item ? colors.primary : colors.card }]}><Text style={[styles.genreText, { color: selectedGenre === item ? colors.primaryForeground : colors.mutedForeground }]}>{item}</Text></Pressable>} />
             <View style={styles.resultsHeader}><Text style={[styles.resultsTitle, { color: colors.foreground }]}>{query.trim() || selectedGenre !== 'All' ? 'Your results' : 'Popular picks'}</Text><Text style={[styles.count, { color: colors.mutedForeground }]}>{filteredMovies.length} films</Text></View>
           </View>
         }
@@ -70,7 +71,7 @@ export default function SearchScreen() {
             <Text style={[styles.placeholderText, { color: colors.mutedForeground }]}>Searching...</Text>
           </View>
         ) : (
-          <EmptyState title="No movies found" message="Try another title or explore a different genre." actionLabel="Clear filters" onAction={() => { setQuery(''); setSelectedGenre('All'); }} icon="search" />
+          <EmptyState title="No movies found" message="Try another title or explore a different genre." actionLabel="Clear filters"           onAction={() => { setQuery(''); router.setParams({ genre: 'All' }); }} icon="search" />
         )}
       />
     </View>

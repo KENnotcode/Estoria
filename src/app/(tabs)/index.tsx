@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ScrollView as ScrollViewType } from 'react-native';
 import { ActivityIndicator, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,14 @@ import { useColors } from '../../../hooks/useColors';
 import { usePopularMovies, useTopRatedMovies, useTrendingMovies } from '../../../hooks/useMovies';
 
 const meridianImage = require('../../../assets/images/poster-meridian.jpg');
+
+const CATEGORIES = [
+  { label: 'Action', genre: 'Action' },
+  { label: 'Drama', genre: 'Drama' },
+  { label: 'Comedy/RomCom', genre: 'Comedy' },
+  { label: 'Horror', genre: 'Horror' },
+  { label: 'Anime', genre: 'Animation' },
+];
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -44,6 +52,24 @@ export default function HomeScreen() {
     setCarouselIndex(realIndex);
     (carouselRef.current as any)?.scrollTo?.({ x: (hasLoop ? realIndex + 1 : realIndex) * itemWidth, animated });
   };
+
+  const allMovies = useMemo(() => {
+    const seen = new Set<string>();
+    return [...popular, ...trending, ...topRated].filter((movie) => {
+      if (seen.has(movie.id)) return false;
+      seen.add(movie.id);
+      return true;
+    });
+  }, [popular, trending, topRated]);
+
+  const moviesByCategory = useMemo(
+    () =>
+      CATEGORIES.map((category) => ({
+        ...category,
+        movies: allMovies.filter((movie) => movie.genres.includes(category.genre)).slice(0, 6),
+      })),
+    [allMovies],
+  );
 
   const loading = popularLoading || trendingLoading || topRatedLoading;
   const error = popularError || trendingError || topRatedError;
@@ -142,6 +168,19 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
             {topRatedMovies.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
           </ScrollView>
+          <View style={styles.browseHeader}>
+            <Text style={[styles.browseTitle, { color: colors.foreground, top: 15 }]}>Browse Movies by Categories</Text>
+          </View>
+          {moviesByCategory.map(({ label, genre, movies }) =>
+            movies.length === 0 ? null : (
+              <View key={label}>
+                <View style={styles.sectionSpacing}><SectionHeader title={label} onPress={() => router.push({ pathname: '/search', params: { genre } })} /></View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
+                  {movies.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
+                </ScrollView>
+              </View>
+            ),
+          )}
           <View style={styles.discoveryCard}>
             <Image source={meridianImage} resizeMode="cover" style={styles.discoveryImage} />
             <View style={styles.discoveryCopy}><Text style={[styles.eyebrow, { color: colors.primary }]}>WEEKLY DISCOVERY</Text><Text style={[styles.discoveryTitle, { color: colors.foreground }]}>Stories worth staying up for.</Text><Pressable onPress={() => router.push('/search')}><Text style={[styles.discoveryLink, { color: colors.mutedForeground }]}>Explore the collection  →</Text></Pressable></View>
@@ -186,4 +225,8 @@ const styles = StyleSheet.create({
   discoveryCopy: { flex: 1, padding: 17, justifyContent: 'center' },
   discoveryTitle: { fontSize: 17, lineHeight: 22, fontFamily: 'Inter_700Bold', marginTop: 7, marginBottom: 12 },
   discoveryLink: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
+  browseHeader: { marginTop: 28, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  browseBadge: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 7 },
+  browseBadgeText: { color: '#FFFFFF', fontSize: 9, letterSpacing: 1.1, fontFamily: 'Inter_700Bold' },
+  browseTitle: { fontSize: 25, letterSpacing: -0.5, fontFamily: 'Inter_700Bold' },
 });
