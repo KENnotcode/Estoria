@@ -1,7 +1,9 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import type { ScrollView as ScrollViewType } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
@@ -16,6 +18,9 @@ export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const carouselRef = useRef<ScrollViewType>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const openMovie = (id: string) => router.push({ pathname: '/movie/[id]', params: { id } });
 
   const { data: popular = [], isLoading: popularLoading, error: popularError, refetch: refetchPopular } = usePopularMovies();
@@ -25,7 +30,9 @@ export default function HomeScreen() {
   const featuredMovie = popular[0];
   const latest = [...popular].sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 5);
   const trendingMovies = trending.filter((movie) => movie.id !== featuredMovie?.id).slice(0, 5);
-  const topRatedMovies = topRated.filter((movie) => ![...popular, ...trending].some((m) => m.id === movie.id)).slice(0, 5);
+  const topRatedMovies = topRated.filter((movie) => ![...popular, ...trending].some((m) => m.id === movie.id)).slice(0, 10);
+
+  const carouselMovies = topRatedMovies.length > 0 ? topRatedMovies : popular.slice(0, 10);
 
   const loading = popularLoading || trendingLoading || topRatedLoading;
   const error = popularError || trendingError || topRatedError;
@@ -38,7 +45,7 @@ export default function HomeScreen() {
     );
   }
 
-  if (error || !featuredMovie) {
+  if (error || carouselMovies.length === 0) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <EmptyState
@@ -64,16 +71,35 @@ export default function HomeScreen() {
         </View>
         <View style={styles.content}>
           <SearchBar onPress={() => router.push('/search')} />
-          <Pressable testID="featured-movie" accessibilityRole="button" accessibilityLabel={`Open featured movie ${featuredMovie.title}`} onPress={() => openMovie(featuredMovie.id)} style={styles.hero}>
-            <ImageBackground source={featuredMovie.backdrop} resizeMode="cover" style={styles.heroImage} imageStyle={styles.heroImageRadius}>
-              <LinearGradient colors={['transparent', 'rgba(12,13,16,0.22)', colors.background]} locations={[0, 0.48, 1]} style={styles.heroGradient}>
-                <View style={[styles.heroBadge, { backgroundColor: colors.primary }]}><Text style={styles.heroBadgeText}>FEATURED MOVIES</Text></View>
-                <Text style={[styles.heroTitle, { color: colors.foreground }]}>{featuredMovie.title}</Text>
-                <View style={styles.heroMeta}><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.releaseYear}</Text><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.genres[0]}</Text><View style={styles.star}><Feather name="star" size={12} color={colors.primary} /><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.rating}</Text></View></View>
-                <View style={[styles.detailsButton, { backgroundColor: colors.foreground }]}><Text style={[styles.detailsButtonText, { color: colors.background }]}>View details</Text><Feather name="arrow-up-right" size={15} color={colors.background} /></View>
-              </LinearGradient>
-            </ImageBackground>
-          </Pressable>
+          <View style={styles.hero}>
+            <ScrollView
+              ref={carouselRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
+                setCarouselIndex(index);
+              }}
+            >
+              {carouselMovies.map((movie) => (
+                <ImageBackground key={movie.id} source={movie.backdrop} resizeMode="cover" style={[styles.heroImage, { width: screenWidth - 40 }]} imageStyle={styles.heroImageRadius} />
+              ))}
+            </ScrollView>
+            <LinearGradient colors={['transparent', 'rgba(12,13,16,0.4)', 'rgba(12,13,16,0.75)']} locations={[0, 0.55, 1]} style={styles.heroGradient}>
+              <View style={[styles.heroBadge, { backgroundColor: colors.primary, position: 'absolute', bottom: 115, left: 8 }]}><Text style={styles.heroBadgeText}>FEATURED MOVIES</Text></View>
+              <Text numberOfLines={1} style={[styles.heroTitle, { color: colors.foreground, position: 'absolute', bottom: 72, left: 12 }]}>{carouselMovies[carouselIndex]?.title}</Text>
+              <View style={[styles.heroMeta, { position: 'absolute', bottom: 55, left: 12 }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.releaseYear}</Text><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.genres[0]}</Text><View style={styles.star}><Feather name="star" size={12} color={colors.primary} /><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.rating.toFixed(1)}</Text></View></View>
+              <Pressable onPress={() => openMovie(carouselMovies[carouselIndex]?.id)} style={[styles.detailsButton, { backgroundColor: colors.foreground, position: 'absolute', bottom: 10, left: 12 }]}><Text style={[styles.detailsButtonText, { color: colors.background }]}>View details</Text><Feather name="arrow-up-right" size={15} color={colors.background} /></Pressable>
+            </LinearGradient>
+            <Pressable onPress={() => setCarouselIndex((prev) => { const n = carouselMovies.length; const next = (prev - 1 + n) % n; const isWrap = next > prev; (carouselRef.current as any)?.scrollTo?.({ x: next * (screenWidth - 40), animated: !isWrap }); return next; })} style={[styles.carouselArrow, { left: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 20, right: 5 }}><Feather name="chevron-left" size={22} color={colors.primary} /></Pressable>
+            <Pressable onPress={() => setCarouselIndex((prev) => { const n = carouselMovies.length; const next = (prev + 1) % n; const isWrap = next < prev; (carouselRef.current as any)?.scrollTo?.({ x: next * (screenWidth - 40), animated: !isWrap }); return next; })} style={[styles.carouselArrow, { right: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 5, right: 20 }}><Feather name="chevron-right" size={22} color={colors.primary} /></Pressable>
+          </View>
+          <View style={styles.dotsRow}>
+            {carouselMovies.map((_, i) => (
+              <View key={i} style={[styles.dotIndicator, i === carouselIndex && { backgroundColor: colors.primary, width: 24 }]} />
+            ))}
+          </View>
           <SectionHeader title="Trending now" onPress={() => router.push('/search')} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
             {trendingMovies.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
@@ -107,10 +133,10 @@ const styles = StyleSheet.create({
   brand: { fontSize: 21, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, marginTop: 1 },
   avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 15, fontFamily: 'Inter_700Bold' },
-  hero: { marginTop: 20, marginBottom: 27, borderRadius: 20, overflow: 'hidden' },
+  hero: { marginTop: 20, marginBottom: 14, borderRadius: 20, overflow: 'hidden', position: 'relative' },
   heroImage: { height: 302, justifyContent: 'flex-end' },
   heroImageRadius: { borderRadius: 20 },
-  heroGradient: { flex: 1, justifyContent: 'flex-end', padding: 20 },
+  heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   heroBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 7, marginBottom: 10 },
   heroBadgeText: { color: '#FFFFFF', fontSize: 9, letterSpacing: 1.1, fontFamily: 'Inter_700Bold' },
   heroTitle: { fontSize: 29, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
@@ -120,6 +146,9 @@ const styles = StyleSheet.create({
   star: { flexDirection: 'row', gap: 4, alignItems: 'center', marginLeft: 2 },
   detailsButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 11, paddingHorizontal: 13, paddingVertical: 10, marginTop: 16 },
   detailsButtonText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4, marginBottom: 22 },
+  dotIndicator: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#3A3D45' },
+  carouselArrow: { position: 'absolute', top: '50%', marginTop: -16, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(12,13,16,0.6)', zIndex: 10 },
   rowContent: { paddingRight: 8 },
   sectionSpacing: { marginTop: 28 },
   discoveryCard: { marginTop: 32, borderRadius: 18, backgroundColor: '#17191F', overflow: 'hidden', flexDirection: 'row', minHeight: 132 },
