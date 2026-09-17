@@ -5,22 +5,25 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/EstoriaIconTransparent.png",
-    "scheme": "Estoria",
+    "scheme": "estoria",
     "userInterfaceStyle": "automatic",
     "extra": {
-      "tmdbApiKey": "f855e6aaf1e6cb74c0905c5b2d67c145"
+      "tmdbApiKey": "f855e6aaf1e6cb74c0905c5b2d67c145",
+      "router": {},
+      "eas": {
+        "projectId": "c9e0ad40-a1a5-479d-969f-107279af1e32"
+      }
     },
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "foregroundImage": "./assets/images/EstoriaIconTransparent.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kencantcode.Estoria"
     },
     "web": {
       "output": "static",
@@ -31,9 +34,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "transparent",
+          "image": "./assets/images/EstoriaIconTransparent.png",
+          "imageWidth": 150
         }
       ]
     ],

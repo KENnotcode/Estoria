@@ -1,13 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
 import { Alert, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
-import { useColors } from '../../../hooks/useColors';
 import { useFavorites } from '../../../context/FavoritesContext';
+import { useColors } from '../../../hooks/useColors';
 import { useMovieDetails, useRecommendations } from '../../../hooks/useMovies';
 
 export default function MovieDetailsScreen() {
