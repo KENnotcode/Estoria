@@ -64,6 +64,10 @@ export class TmdbClient {
     return this.list('/trending/movie/day', page);
   }
 
+  getTopRated(page = 1): Promise<TmdbMovie[]> {
+    return this.list('/movie/top_rated', page);
+  }
+
   search(query: string, page = 1): Promise<TmdbMovie[]> {
     return this.list('/search/movie', page, { query });
   }

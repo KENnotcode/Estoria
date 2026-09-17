@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchGenres, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTrending } from '../services/movieService';
+import { fetchGenres, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTopRated, fetchTrending } from '../services/movieService';
 import type { AppMovie } from '../types/movie';
 
 export const MOVIE_QUERY_KEYS = {
   popular: ['movies', 'popular'] as const,
   nowPlaying: ['movies', 'nowPlaying'] as const,
   trending: ['movies', 'trending'] as const,
+  topRated: ['movies', 'topRated'] as const,
   search: (query: string) => ['movies', 'search', query] as const,
   genres: ['genres'] as const,
   details: (id: string) => ['movies', 'details', id] as const,
@@ -32,6 +33,14 @@ export function useTrendingMovies(page = 1) {
   return useQuery({
     queryKey: [...MOVIE_QUERY_KEYS.trending, page],
     queryFn: () => fetchTrending(page),
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useTopRatedMovies(page = 1) {
+  return useQuery({
+    queryKey: [...MOVIE_QUERY_KEYS.topRated, page],
+    queryFn: () => fetchTopRated(page),
     staleTime: 1000 * 60 * 10,
   });
 }

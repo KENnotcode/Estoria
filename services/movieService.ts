@@ -46,6 +46,14 @@ export async function fetchTrending(page = 1): Promise<AppMovie[]> {
   return movies.map((m) => mapMovie(m, genres));
 }
 
+export async function fetchTopRated(page = 1): Promise<AppMovie[]> {
+  const [movies, genres] = await Promise.all([
+    tmdb.getTopRated(page),
+    tmdb.getGenres(),
+  ]);
+  return movies.map((m) => mapMovie(m, genres));
+}
+
 export async function fetchSearch(query: string, page = 1): Promise<AppMovie[]> {
   const [movies, genres] = await Promise.all([
     tmdb.search(query, page),

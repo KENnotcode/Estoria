@@ -8,7 +8,7 @@ import { MovieCard } from '../../../components/MovieCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { SectionHeader } from '../../../components/SectionHeader';
 import { useColors } from '../../../hooks/useColors';
-import { usePopularMovies, useTrendingMovies } from '../../../hooks/useMovies';
+import { usePopularMovies, useTopRatedMovies, useTrendingMovies } from '../../../hooks/useMovies';
 
 const meridianImage = require('../../../assets/images/poster-meridian.jpg');
 
@@ -20,13 +20,15 @@ export default function HomeScreen() {
 
   const { data: popular = [], isLoading: popularLoading, error: popularError, refetch: refetchPopular } = usePopularMovies();
   const { data: trending = [], isLoading: trendingLoading, error: trendingError, refetch: refetchTrending } = useTrendingMovies();
+  const { data: topRated = [], isLoading: topRatedLoading, error: topRatedError, refetch: refetchTopRated } = useTopRatedMovies();
 
   const featuredMovie = popular[0];
   const latest = [...popular].sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 5);
   const trendingMovies = trending.filter((movie) => movie.id !== featuredMovie?.id).slice(0, 5);
+  const topRatedMovies = topRated.filter((movie) => ![...popular, ...trending].some((m) => m.id === movie.id)).slice(0, 5);
 
-  const loading = popularLoading || trendingLoading;
-  const error = popularError || trendingError;
+  const loading = popularLoading || trendingLoading || topRatedLoading;
+  const error = popularError || trendingError || topRatedError;
 
   if (loading) {
     return (
@@ -43,7 +45,7 @@ export default function HomeScreen() {
           title="Could not load movies"
           message="Check your internet connection and try again."
           actionLabel="Retry"
-          onAction={() => { refetchPopular(); refetchTrending(); }}
+          onAction={() => { refetchPopular(); refetchTrending(); refetchTopRated(); }}
           icon="alert-triangle"
         />
       </View>
@@ -65,7 +67,7 @@ export default function HomeScreen() {
           <Pressable testID="featured-movie" accessibilityRole="button" accessibilityLabel={`Open featured movie ${featuredMovie.title}`} onPress={() => openMovie(featuredMovie.id)} style={styles.hero}>
             <ImageBackground source={featuredMovie.backdrop} resizeMode="cover" style={styles.heroImage} imageStyle={styles.heroImageRadius}>
               <LinearGradient colors={['transparent', 'rgba(12,13,16,0.22)', colors.background]} locations={[0, 0.48, 1]} style={styles.heroGradient}>
-                <View style={[styles.heroBadge, { backgroundColor: colors.primary }]}><Text style={styles.heroBadgeText}>FEATURED TONIGHT</Text></View>
+                <View style={[styles.heroBadge, { backgroundColor: colors.primary }]}><Text style={styles.heroBadgeText}>FEATURED MOVIES</Text></View>
                 <Text style={[styles.heroTitle, { color: colors.foreground }]}>{featuredMovie.title}</Text>
                 <View style={styles.heroMeta}><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.releaseYear}</Text><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.genres[0]}</Text><View style={styles.star}><Feather name="star" size={12} color={colors.primary} /><Text style={[styles.metaText, { color: colors.foreground }]}>{featuredMovie.rating}</Text></View></View>
                 <View style={[styles.detailsButton, { backgroundColor: colors.foreground }]}><Text style={[styles.detailsButtonText, { color: colors.background }]}>View details</Text><Feather name="arrow-up-right" size={15} color={colors.background} /></View>
@@ -79,6 +81,10 @@ export default function HomeScreen() {
           <View style={styles.sectionSpacing}><SectionHeader title="Latest releases" onPress={() => router.push('/search')} /></View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
             {latest.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
+          </ScrollView>
+          <View style={styles.sectionSpacing}><SectionHeader title="Top rated" onPress={() => router.push('/search')} /></View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
+            {topRatedMovies.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
           </ScrollView>
           <View style={styles.discoveryCard}>
             <Image source={meridianImage} resizeMode="cover" style={styles.discoveryImage} />
