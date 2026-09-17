@@ -34,6 +34,17 @@ export default function HomeScreen() {
 
   const carouselMovies = topRatedMovies.length > 0 ? topRatedMovies : popular.slice(0, 10);
 
+  const itemWidth = screenWidth - 40;
+  const hasLoop = carouselMovies.length > 1;
+  const displayMovies = hasLoop
+    ? [carouselMovies[carouselMovies.length - 1], ...carouselMovies, carouselMovies[0]]
+    : carouselMovies;
+  const initialScrollDone = useRef(false);
+  const goTo = (realIndex: number, animated = true) => {
+    setCarouselIndex(realIndex);
+    (carouselRef.current as any)?.scrollTo?.({ x: (hasLoop ? realIndex + 1 : realIndex) * itemWidth, animated });
+  };
+
   const loading = popularLoading || trendingLoading || topRatedLoading;
   const error = popularError || trendingError || topRatedError;
 
@@ -77,13 +88,32 @@ export default function HomeScreen() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              onLayout={() => {
+                if (!initialScrollDone.current && hasLoop && carouselRef.current) {
+                  (carouselRef.current as any)?.scrollTo?.({ x: itemWidth, animated: false });
+                  initialScrollDone.current = true;
+                }
+              }}
               onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
-                setCarouselIndex(index);
+                const index = Math.round(e.nativeEvent.contentOffset.x / itemWidth);
+                if (hasLoop) {
+                  if (index === 0) {
+                    const real = carouselMovies.length - 1;
+                    (carouselRef.current as any)?.scrollTo?.({ x: (real + 1) * itemWidth, animated: false });
+                    setCarouselIndex(real);
+                  } else if (index === carouselMovies.length + 1) {
+                    (carouselRef.current as any)?.scrollTo?.({ x: itemWidth, animated: false });
+                    setCarouselIndex(0);
+                  } else {
+                    setCarouselIndex(index - 1);
+                  }
+                } else {
+                  setCarouselIndex(index);
+                }
               }}
             >
-              {carouselMovies.map((movie) => (
-                <ImageBackground key={movie.id} source={movie.backdrop} resizeMode="cover" style={[styles.heroImage, { width: screenWidth - 40 }]} imageStyle={styles.heroImageRadius} />
+              {displayMovies.map((movie, idx) => (
+                <ImageBackground key={`${movie.id}-${idx}`} source={movie.backdrop} resizeMode="cover" style={[styles.heroImage, { width: itemWidth }]} imageStyle={styles.heroImageRadius} />
               ))}
             </ScrollView>
             <LinearGradient colors={['transparent', 'rgba(12,13,16,0.4)', 'rgba(12,13,16,0.75)']} locations={[0, 0.55, 1]} style={styles.heroGradient}>
@@ -92,8 +122,8 @@ export default function HomeScreen() {
               <View style={[styles.heroMeta, { position: 'absolute', bottom: 55, left: 12 }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.releaseYear}</Text><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.genres[0]}</Text><View style={styles.star}><Feather name="star" size={12} color={colors.primary} /><Text style={[styles.metaText, { color: colors.foreground }]}>{carouselMovies[carouselIndex]?.rating.toFixed(1)}</Text></View></View>
               <Pressable onPress={() => openMovie(carouselMovies[carouselIndex]?.id)} style={[styles.detailsButton, { backgroundColor: colors.foreground, position: 'absolute', bottom: 10, left: 12 }]}><Text style={[styles.detailsButtonText, { color: colors.background }]}>View details</Text><Feather name="arrow-up-right" size={15} color={colors.background} /></Pressable>
             </LinearGradient>
-            <Pressable onPress={() => setCarouselIndex((prev) => { const n = carouselMovies.length; const next = (prev - 1 + n) % n; const isWrap = next > prev; (carouselRef.current as any)?.scrollTo?.({ x: next * (screenWidth - 40), animated: !isWrap }); return next; })} style={[styles.carouselArrow, { left: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 20, right: 5 }}><Feather name="chevron-left" size={22} color={colors.primary} /></Pressable>
-            <Pressable onPress={() => setCarouselIndex((prev) => { const n = carouselMovies.length; const next = (prev + 1) % n; const isWrap = next < prev; (carouselRef.current as any)?.scrollTo?.({ x: next * (screenWidth - 40), animated: !isWrap }); return next; })} style={[styles.carouselArrow, { right: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 5, right: 20 }}><Feather name="chevron-right" size={22} color={colors.primary} /></Pressable>
+            <Pressable onPress={() => { const n = carouselMovies.length; if (n === 0) return; const prev = carouselIndex; const next = (prev - 1 + n) % n; goTo(next, !(next > prev)); }} style={[styles.carouselArrow, { left: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 20, right: 5 }}><Feather name="chevron-left" size={22} color={colors.primary} /></Pressable>
+            <Pressable onPress={() => { const n = carouselMovies.length; if (n === 0) return; const prev = carouselIndex; const next = (prev + 1) % n; goTo(next, !(next < prev)); }} style={[styles.carouselArrow, { right: 4 }]} hitSlop={{ top: 12, bottom: 12, left: 5, right: 20 }}><Feather name="chevron-right" size={22} color={colors.primary} /></Pressable>
           </View>
           <View style={styles.dotsRow}>
             {carouselMovies.map((_, i) => (
