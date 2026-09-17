@@ -1,10 +1,9 @@
 import { Feather } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import type { AppMovie } from '../types/movie';
-import { useColors } from '../hooks/useColors';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFavorites } from '../context/FavoritesContext';
+import { useColors } from '../hooks/useColors';
+import type { AppMovie } from '../types/movie';
 
 type MovieCardProps = {
   movie: AppMovie;
@@ -27,7 +26,7 @@ export function MovieCard({ movie, onPress, width = 134 }: MovieCardProps) {
           style={({ pressed }) => [styles.posterButton, { opacity: pressed ? 0.78 : 1 }]}
         >
           <View style={styles.posterWrap}>
-            <Image source={movie.poster} resizeMode="cover" style={styles.poster} />
+            <Image source={movie.poster} contentFit="cover" style={styles.poster} />
             <View style={[styles.rating, { backgroundColor: colors.primary }]}>
               <Feather name="star" size={10} color={colors.primaryForeground} />
               <Text style={[styles.ratingText, { color: colors.primaryForeground }]}>{movie.rating.toFixed(1)}</Text>
