@@ -1,12 +1,15 @@
 {
   "expo": {
-    "name": "tryy",
-    "slug": "tryy",
+    "name": "Estoria",
+    "slug": "Estoria",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tryy",
+    "scheme": "Estoria",
     "userInterfaceStyle": "automatic",
+    "extra": {
+      "tmdbApiKey": "f855e6aaf1e6cb74c0905c5b2d67c145"
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },
