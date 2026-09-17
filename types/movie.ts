@@ -6,6 +6,7 @@ export type AppMovie = {
   id: string;
   title: string;
   releaseYear: number;
+  releaseDate: string;
   runtime: number;
   rating: number;
   genres: string[];

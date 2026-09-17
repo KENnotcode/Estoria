@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { fetchGenres, fetchMoviesByGenre, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTopRated, fetchTrending } from '../services/movieService';
+import { fetchGenres, fetchMoviesByGenre, fetchMovieDetails, fetchNowPlaying, fetchPopular, fetchRecommendations, fetchSearch, fetchTopRated, fetchTrending, fetchUpcoming } from '../services/movieService';
 import type { AppMovie } from '../types/movie';
 
 export const MOVIE_QUERY_KEYS = {
@@ -7,6 +7,7 @@ export const MOVIE_QUERY_KEYS = {
   nowPlaying: ['movies', 'nowPlaying'] as const,
   trending: ['movies', 'trending'] as const,
   topRated: ['movies', 'topRated'] as const,
+  upcoming: ['movies', 'upcoming'] as const,
   search: (query: string) => ['movies', 'search', query] as const,
   genres: ['genres'] as const,
   moviesByGenre: (genre: string, page = 1) => ['movies', 'byGenre', genre, page] as const,
@@ -42,6 +43,14 @@ export function useTopRatedMovies(page = 1) {
   return useQuery({
     queryKey: [...MOVIE_QUERY_KEYS.topRated, page],
     queryFn: () => fetchTopRated(page),
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useUpcomingMovies(page = 1) {
+  return useQuery({
+    queryKey: [...MOVIE_QUERY_KEYS.upcoming, page],
+    queryFn: () => fetchUpcoming(page),
     staleTime: 1000 * 60 * 10,
   });
 }

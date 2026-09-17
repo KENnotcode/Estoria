@@ -10,7 +10,7 @@ import { MovieCard } from '../../../components/MovieCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { SectionHeader } from '../../../components/SectionHeader';
 import { useColors } from '../../../hooks/useColors';
-import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies } from '../../../hooks/useMovies';
+import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
 
 const meridianImage = require('../../../assets/images/poster-meridian.jpg');
 
@@ -22,6 +22,8 @@ const CATEGORIES = [
   { label: 'Anime', genre: 'Animation' },
 ];
 
+const NOW = Date.now();
+
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -29,11 +31,27 @@ export default function HomeScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const carouselRef = useRef<ScrollViewType>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const openMovie = (id: string) => router.push({ pathname: '/movie/[id]', params: { id } });
+  const openMovie = (id: string, releaseDate?: string) => router.push({
+    pathname: '/movie/[id]',
+    params: { id, upcoming: releaseDate ? 'true' : undefined, releaseDate },
+  });
+
+  const formatEta = (releaseDate: string) => {
+    if (!releaseDate) return undefined;
+    const d = new Date(releaseDate);
+    if (Number.isNaN(d.getTime())) return undefined;
+    const days = Math.round((d.getTime() - NOW) / 86400000);
+    if (days < 0) return undefined;
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    if (days <= 30) return `In ${days}d`;
+    return `In ${Math.round(days / 30)}mo`;
+  };
 
   const { data: popular = [], isLoading: popularLoading, error: popularError, refetch: refetchPopular } = usePopularMovies();
   const { data: trending = [], isLoading: trendingLoading, error: trendingError, refetch: refetchTrending } = useTrendingMovies();
   const { data: topRated = [], isLoading: topRatedLoading, error: topRatedError, refetch: refetchTopRated } = useTopRatedMovies();
+  const { data: upcoming = [] } = useUpcomingMovies();
 
   const featuredMovie = popular[0];
   const latest = [...popular].sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 5);
@@ -158,7 +176,7 @@ export default function HomeScreen() {
             {topRatedMovies.map((movie) => <MovieCard key={movie.id} movie={movie} onPress={() => openMovie(movie.id)} />)}
           </ScrollView>
           <View style={styles.browseHeader}>
-            <Text style={[styles.browseTitle, { color: colors.foreground, top: 15 }]}>Browse Movies by Categories</Text>
+            <Text style={[styles.browseTitle, { color: colors.foreground, top: 13 }]}>Browse Movies by Categories</Text>
           </View>
           {moviesByCategory.map(({ label, genre, movies }) =>
             movies.length === 0 ? null : (
@@ -170,6 +188,18 @@ export default function HomeScreen() {
               </View>
             ),
           )}
+          {upcoming.length > 0 ? (
+            <>
+              <View style={[styles.soonHeader, { backgroundColor: colors.primary, marginTop: 32 }]}>
+                <Text style={styles.soonHeaderText}>Soon on Estoria</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
+                {upcoming.slice(0, 10).map((movie) => (
+                  <MovieCard key={movie.id} movie={movie} eta={formatEta(movie.releaseDate)} showRating={false} onPress={() => openMovie(movie.id, movie.releaseDate)} />
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
           <View style={styles.discoveryCard}>
             <Image source={meridianImage} resizeMode="cover" style={styles.discoveryImage} />
             <View style={styles.discoveryCopy}><Text style={[styles.eyebrow, { color: colors.primary }]}>WEEKLY DISCOVERY</Text><Text style={[styles.discoveryTitle, { color: colors.foreground }]}>Stories worth staying up for.</Text><Pressable onPress={() => router.push('/search')}><Text style={[styles.discoveryLink, { color: colors.mutedForeground }]}>Explore the collection  →</Text></Pressable></View>
@@ -209,7 +239,9 @@ const styles = StyleSheet.create({
   carouselArrow: { position: 'absolute', top: '50%', marginTop: -16, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(12,13,16,0.6)', zIndex: 10 },
   rowContent: { paddingRight: 8 },
   sectionSpacing: { marginTop: 28 },
-  discoveryCard: { marginTop: 32, borderRadius: 18, backgroundColor: '#17191F', overflow: 'hidden', flexDirection: 'row', minHeight: 132 },
+  soonHeader: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 14 },
+  soonHeaderText: { color: '#FFFFFF', fontSize: 16, letterSpacing: -0.2, fontFamily: 'Inter_700Bold' },
+  discoveryCard: { marginTop: 28, borderRadius: 18, backgroundColor: '#17191F', overflow: 'hidden', flexDirection: 'row', minHeight: 132 },
   discoveryImage: { width: 102, height: 132 },
   discoveryCopy: { flex: 1, padding: 17, justifyContent: 'center' },
   discoveryTitle: { fontSize: 17, lineHeight: 22, fontFamily: 'Inter_700Bold', marginTop: 7, marginBottom: 12 },

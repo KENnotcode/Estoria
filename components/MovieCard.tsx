@@ -9,9 +9,11 @@ type MovieCardProps = {
   movie: AppMovie;
   onPress: () => void;
   width?: number;
+  eta?: string;
+  showRating?: boolean;
 };
 
-export function MovieCard({ movie, onPress, width = 134 }: MovieCardProps) {
+export function MovieCard({ movie, onPress, width = 134, eta, showRating = true }: MovieCardProps) {
   const colors = useColors();
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorite = isFavorite(movie.id);
@@ -27,10 +29,17 @@ export function MovieCard({ movie, onPress, width = 134 }: MovieCardProps) {
         >
           <View style={styles.posterWrap}>
             <Image source={movie.poster} contentFit="cover" style={styles.poster} />
-            <View style={[styles.rating, { backgroundColor: colors.primary }]}>
-              <Feather name="star" size={10} color={colors.primaryForeground} />
-              <Text style={[styles.ratingText, { color: colors.primaryForeground }]}>{movie.rating.toFixed(1)}</Text>
-            </View>
+            {showRating ? (
+              <View style={[styles.rating, { backgroundColor: colors.primary }]}>
+                <Feather name="star" size={10} color={colors.primaryForeground} />
+                <Text style={[styles.ratingText, { color: colors.primaryForeground }]}>{movie.rating.toFixed(1)}</Text>
+              </View>
+            ) : null}
+            {eta ? (
+              <View style={[styles.etaBadge, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.ratingText, { color: colors.primaryForeground }]}>{eta}</Text>
+              </View>
+            ) : null}
           </View>
         </Pressable>
         <Pressable
@@ -64,6 +73,7 @@ const styles = StyleSheet.create({
   poster: { width: '100%', height: '100%', backgroundColor: '#1C1F26' },
   favorite: { position: 'absolute', top: 9, right: 9, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   rating: { position: 'absolute', left: 9, bottom: 9, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  etaBadge: { position: 'absolute', top: 9, left: 9, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 5 },
   ratingText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
   title: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginTop: 10 },
   meta: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4 },

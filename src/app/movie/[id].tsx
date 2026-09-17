@@ -9,11 +9,25 @@ import { useFavorites } from '../../../context/FavoritesContext';
 import { useColors } from '../../../hooks/useColors';
 import { useMovieDetails, useRecommendations } from '../../../hooks/useMovies';
 
+const TODAY = new Date().toISOString().slice(0, 10);
+
+const formatReleaseDate = (releaseDate: string) => {
+  if (!releaseDate) return undefined;
+  const date = new Date(`${releaseDate}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+};
+
 export default function MovieDetailsScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, upcoming, releaseDate: routeReleaseDate } = useLocalSearchParams<{ id: string; upcoming?: string; releaseDate?: string }>();
   const { data: movie, isLoading, error, refetch } = useMovieDetails(id ?? '');
   const { data: recommendations = [] } = useRecommendations(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -31,6 +45,9 @@ export default function MovieDetailsScreen() {
   }
 
   const favorite = isFavorite(movie.id);
+  const releaseDate = movie.releaseDate || routeReleaseDate || '';
+  const releaseEta = formatReleaseDate(releaseDate);
+  const isUpcoming = upcoming === 'true' || (!!releaseDate && releaseDate >= TODAY);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -41,9 +58,8 @@ export default function MovieDetailsScreen() {
           </LinearGradient>
         </ImageBackground>
         <View style={styles.content}>
-          <View style={[styles.tag, { backgroundColor: colors.primary }]}><Text style={styles.tagText}>ESTORIA PICK</Text></View>
-          <Text style={[styles.title, { color: colors.foreground }]}>{movie.title}</Text>
-          <View style={styles.metaRow}><View style={styles.rating}><Feather name="star" size={14} color={colors.primary} /><Text style={[styles.metaStrong, { color: colors.foreground }]}>{movie.rating.toFixed(1)}</Text></View><Text style={[styles.meta, { color: colors.mutedForeground }]}>{movie.releaseYear}</Text><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.meta, { color: colors.mutedForeground }]}>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</Text></View>
+          <Text style={[styles.title, { color: colors.foreground, top: 13 }]}>{movie.title}</Text>
+          <View style={styles.metaRow}>{isUpcoming && releaseEta ? <Text style={[styles.meta, { color: colors.tint }]}>Estimated Release Date:<Text style={[styles.meta, { color: colors.foreground }]}>  {releaseEta}</Text></Text> : <View style={styles.rating}><Feather name="star" size={14} color={colors.primary} /><Text style={[styles.metaStrong, { color: colors.foreground }]}>{movie.rating.toFixed(1)}</Text></View>}<Text style={[styles.meta, { color: colors.mutedForeground }]}></Text>{!isUpcoming ? <><Text style={[styles.dot, { color: colors.mutedForeground }]}>•</Text><Text style={[styles.meta, { color: colors.mutedForeground }]}>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</Text></> : null}</View>
           <View style={styles.genreRow}>{movie.genres.map((genre) => <View key={genre} style={[styles.genre, { backgroundColor: colors.card }]}><Text style={[styles.genreText, { color: colors.mutedForeground }]}>{genre}</Text></View>)}</View>
           <Text style={[styles.description, { color: colors.mutedForeground }]}>{movie.description}</Text>
           <View style={styles.actions}><Pressable accessibilityRole="button" onPress={() => Alert.alert('Preview unavailable', 'Trailer previews will be available soon.')} style={[styles.primaryAction, { backgroundColor: colors.foreground }]}><Feather name="play" size={15} fill={colors.background} color={colors.background} /><Text style={[styles.primaryActionText, { color: colors.background }]}>Play preview</Text></Pressable><Pressable accessibilityRole="button" onPress={() => toggleFavorite(movie.id)} style={[styles.secondaryAction, { borderColor: colors.border }]}><Feather name="heart" size={17} color={favorite ? colors.primary : colors.foreground} /><Text style={[styles.secondaryActionText, { color: colors.foreground }]}>{favorite ? 'Saved' : 'Save'}</Text></Pressable></View>

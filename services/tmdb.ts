@@ -68,6 +68,14 @@ export class TmdbClient {
     return this.list('/movie/top_rated', page);
   }
 
+  getUpcoming(page = 1): Promise<TmdbMovie[]> {
+    return this.list('/movie/upcoming', page);
+  }
+
+  getRecommendations(movieId: number): Promise<TmdbMovie[]> {
+    return this.list(`/movie/${movieId}/recommendations`, 1);
+  }
+
   search(query: string, page = 1): Promise<TmdbMovie[]> {
     return this.list('/search/movie', page, { query });
   }

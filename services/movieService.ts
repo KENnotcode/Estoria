@@ -17,6 +17,7 @@ function mapMovie(movie: TmdbMovie, genres: TmdbGenre[]): AppMovie {
     rating: movie.vote_average ?? 0,
     genres: movie.genres?.map((g) => g.name) ?? movie.genre_ids.map((id) => genreMap.get(id) ?? String(id)),
     description: movie.overview ?? '',
+    releaseDate: movie.release_date ?? '',
     poster: posterUrl(movie.poster_path) ? { uri: posterUrl(movie.poster_path)! } : FALLBACK_POSTER,
     backdrop: backdropUrl(movie.backdrop_path) ? { uri: backdropUrl(movie.backdrop_path)! } : FALLBACK_BACKDROP,
   };
@@ -49,6 +50,14 @@ export async function fetchTrending(page = 1): Promise<AppMovie[]> {
 export async function fetchTopRated(page = 1): Promise<AppMovie[]> {
   const [movies, genres] = await Promise.all([
     tmdb.getTopRated(page),
+    tmdb.getGenres(),
+  ]);
+  return movies.map((m) => mapMovie(m, genres));
+}
+
+export async function fetchUpcoming(page = 1): Promise<AppMovie[]> {
+  const [movies, genres] = await Promise.all([
+    tmdb.getUpcoming(page),
     tmdb.getGenres(),
   ]);
   return movies.map((m) => mapMovie(m, genres));
@@ -91,7 +100,7 @@ export async function fetchMoviesByGenre(genreName: string, page = 1): Promise<A
 
 export async function fetchRecommendations(movieId: string): Promise<AppMovie[]> {
   const [movies, allGenres] = await Promise.all([
-    tmdb.request<TmdbMovie[]>(`/movie/${movieId}/recommendations`, { page: '1' }),
+    tmdb.getRecommendations(Number(movieId)),
     tmdb.getGenres(),
   ]);
   return movies.slice(0, 4).map((m) => mapMovie(m, allGenres));
