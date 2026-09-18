@@ -109,7 +109,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={styles.logoText}>K</Text></View>
-            <View><Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>GOOD EVENING</Text><Text style={[styles.brand, { color: colors.foreground }]}>Kenneth</Text></View>
+            <View><Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>GOOD EVENING</Text><Text style={[styles.brand, { color: colors.foreground }]}>Carlo</Text></View>
           </View>
           <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => router.push('/profile')} style={[styles.avatar, { backgroundColor: colors.card }]}><Text style={[styles.avatarText, { color: colors.primary }]}>K</Text></Pressable>
         </View>

@@ -25,7 +25,7 @@ export default function ProfileScreen() {
         <Text style={[styles.title, { color: colors.foreground }]}>Profile</Text>
         <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}><Text style={styles.avatarText}>K</Text></View>
-          <View style={styles.profileCopy}><Text style={[styles.name, { color: colors.foreground }]}>Kenneth</Text><Text style={[styles.email, { color: colors.mutedForeground }]}>Movie lover · Estoria member</Text></View>
+          <View style={styles.profileCopy}><Text style={[styles.name, { color: colors.foreground }]}>Carlo</Text><Text style={[styles.email, { color: colors.mutedForeground }]}>Movie lover · Estoria member</Text></View>
           <Feather name="edit-2" size={16} color={colors.mutedForeground} />
         </View>
         <View style={styles.menu}>
