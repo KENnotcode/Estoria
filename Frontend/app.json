@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Estoria",
+    "slug": "Estoria",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "estoria",
+    "userInterfaceStyle": "automatic",
+    "extra": {
+      "tmdbApiKey": "f855e6aaf1e6cb74c0905c5b2d67c145",
+      "router": {},
+      "eas": {
+        "projectId": "c9e0ad40-a1a5-479d-969f-107279af1e32"
+      }
+    },
+    "ios": {
+      "icon": "./assets/images/EstoriaIconTransparent.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/EstoriaIconTransparent.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kencantcode.Estoria"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#121212", 
+          "image": "./assets/images/EstoriaIconTransparent.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#121212",
+            "image": "./assets/images/EstoriaIconTransparent.png"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
