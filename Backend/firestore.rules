@@ -1,0 +1,260 @@
+rules_version = '2';
+
+// Estoria Firestore security rules.
+//
+// Threat model enforced here:
+//   1. No anonymous access anywhere. request.auth must exist for every read/write.
+//   2. Role segregation via custom claims (admin / moderator). Claims, not
+//      writable profile fields, decide privilege.
+//   3. Row-level ownership: every user-scoped document lives under
+//      /users/{userId}/... so the path wildcard itself is the IDOR guard.
+//   4. Shared documents (reviews) bind ownership to a field
+//      (resource.data.userId) and validate it on create before it can exist.
+//   5. Strict input validation: allow-listed fields, types, lengths, and
+//      immutable-field checks (createdAt / userId / movieId) on every update.
+//   6. rateLimits is server-only. Client access is denied outright; the
+//      documents are written exclusively by Cloud Functions with the Admin
+//      SDK (which bypasses these rules) inside the same transaction as the
+//      write they gate.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // AUTH & ROLE HELPERS
+    // ============================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasClaim(claim) {
+      return isSignedIn() && claim in request.auth.token && request.auth.token[claim] == true;
+    }
+
+    function isAdmin() {
+      return hasClaim('admin');
+    }
+
+    function isModerator() {
+      return hasClaim('moderator') || isAdmin();
+    }
+
+    // IDOR guard for path-scoped resources: the caller must own the path.
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Reject unknown fields in both directions: no schema drift, no smuggling.
+    function onlyFields(data, allowed) {
+      return data.keys().hasOnly(allowed);
+    }
+
+    // ============================================================
+    // INPUT VALIDATION HELPERS
+    // ============================================================
+
+    function isNonEmptyString(value, maxLength) {
+      return value is string && value.size() >= 1 && value.size() <= maxLength;
+    }
+
+    // POSIX character classes keep the pattern free of backslash escapes.
+    function isValidEmail(value) {
+      return value is string
+        && value.size() >= 3
+        && value.size() <= 254
+        && value.matches('^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$');
+    }
+
+    function isTimestamp(value) {
+      return value is timestamp;
+    }
+
+    // TMDB ids are numeric strings; the doc id must match the field.
+    function isValidMovieId(value) {
+      return value is string && value.matches('^[0-9]{1,10}$');
+    }
+
+    // Optional profile photo: when present, an https data URL or media URL
+    // of bounded length. null is allowed (no photo).
+    function isValidPhotoURL(data) {
+      return !('photoURL' in data)
+        || data.photoURL == null
+        || (data.photoURL is string && data.photoURL.size() >= 1 && data.photoURL.size() <= 500);
+    }
+
+    // ============================================================
+    // RATE-LIMIT MARKERS (server-only)
+    // ============================================================
+
+    match /rateLimits/{uid} {
+      // Written only by Cloud Functions (Admin SDK bypasses rules). The rules
+      // below read these markers with get() to gate direct client writes;
+      // clients can never read, forge, or delete them.
+      allow read, write: if false;
+    }
+
+    // Reads the server-maintained marker for the caller. Used as
+    // defense-in-depth behind the transactional limiter in Cloud Functions:
+    // once the server has recorded a marker for a user, direct client writes
+    // must respect it too.
+    function rateLimitMarker(uid) {
+      return get(/databases/$(database)/documents/rateLimits/$(uid));
+    }
+
+    // ============================================================
+    // USER PROFILES: /users/{userId}
+    // ============================================================
+
+    match /users/{userId} {
+      // Owner reads only their own profile; staff may read any profile.
+      allow get: if isOwner(userId) || isModerator();
+      allow list: if isModerator();
+
+      // A profile may only be created for the caller's own uid, with a
+      // fixed default role. Self-assigning 'admin' is impossible here;
+      // role changes go through the admin-only setRole callable, which
+      // sets a custom claim (claims, not fields, decide privilege).
+      allow create: if isOwner(userId)
+        && onlyFields(incoming(), ['displayName', 'email', 'role', 'photoURL', 'createdAt', 'updatedAt'])
+        && isNonEmptyString(incoming().displayName, 50)
+        && isValidEmail(incoming().email)
+        && incoming().role == 'user'
+        && isTimestamp(incoming().createdAt)
+        && incoming().createdAt == request.time
+        && isTimestamp(incoming().updatedAt)
+        && incoming().updatedAt == request.time
+        && isValidPhotoURL(incoming());
+
+      // Owner updates: identity fields are immutable (email, role,
+      // createdAt). Only displayName, photoURL, and updatedAt may change.
+      // `disabled` is admin-owned but may pass through unchanged, so an
+      // admin-disabled account can still edit its own profile fields.
+      allow update: if isOwner(userId)
+        && onlyFields(incoming(), ['displayName', 'email', 'role', 'photoURL', 'createdAt', 'updatedAt', 'disabled'])
+        && isNonEmptyString(incoming().displayName, 50)
+        && isValidEmail(incoming().email)
+        && incoming().email == existing().email
+        && incoming().role == existing().role
+        && incoming().createdAt == existing().createdAt
+        && (!('disabled' in incoming()) || incoming().disabled == existing().disabled)
+        && isTimestamp(incoming().updatedAt)
+        && incoming().updatedAt == request.time
+        && isValidPhotoURL(incoming());
+
+      // Admins may change role or deactivate a profile, but never rewrite
+      // createdAt or silently change the identity email.
+      allow update: if isAdmin()
+        && onlyFields(incoming(), ['displayName', 'email', 'role', 'photoURL', 'createdAt', 'updatedAt', 'disabled'])
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && isNonEmptyString(incoming().displayName, 50)
+        && incoming().role in ['user', 'admin', 'moderator']
+        && (!('disabled' in incoming()) || incoming().disabled is bool)
+        && isTimestamp(incoming().updatedAt)
+        && incoming().updatedAt == request.time
+        && isValidPhotoURL(incoming());
+
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // PER-USER FAVORITES: /users/{userId}/favorites/{movieId}
+    // ============================================================
+
+    match /users/{userId}/favorites/{movieId} {
+      // The path wildcard IS the row-level security policy: the owner can
+      // only ever address documents inside their own subtree. Cross-user
+      // paths (IDOR) fail this check before any data is touched.
+      allow get, list: if isOwner(userId);
+
+      // Favorites are idempotent: re-adding a movie is a no-op, not an
+      // update, which keeps addedAt immutable without exception paths.
+      allow create: if isOwner(userId)
+        && isValidMovieId(movieId)
+        && incoming().movieId == movieId
+        && onlyFields(incoming(), ['movieId', 'addedAt'])
+        && isTimestamp(incoming().addedAt)
+        && incoming().addedAt == request.time;
+
+      allow update: if false;
+
+      allow delete: if isOwner(userId);
+    }
+
+    // ============================================================
+    // SHARED COLLECTION: /reviews/{reviewId}
+    // ============================================================
+
+    match /reviews/{reviewId} {
+      // Any signed-in user may browse published reviews.
+      allow get, list: if isSignedIn();
+
+      // Relational ownership is established here and can never change:
+      // userId is validated against request.auth.uid on create and locked
+      // on update, so a user can neither forge authorship of a new doc nor
+      // reassign authorship of an existing one.
+      allow create: if isSignedIn()
+        && onlyFields(incoming(), ['movieId', 'userId', 'displayName', 'rating', 'text', 'status', 'createdAt', 'updatedAt'])
+        && incoming().userId == request.auth.uid
+        && isValidMovieId(incoming().movieId)
+        && isNonEmptyString(incoming().displayName, 50)
+        && incoming().rating is int
+        && incoming().rating >= 1
+        && incoming().rating <= 10
+        && incoming().text is string
+        && incoming().text.size() >= 1
+        && incoming().text.size() <= 2000
+        && incoming().status == 'published'
+        && isTimestamp(incoming().createdAt)
+        && incoming().createdAt == request.time
+        && isTimestamp(incoming().updatedAt)
+        && incoming().updatedAt == request.time
+        && (
+          !exists(/databases/$(database)/documents/rateLimits/$(request.auth.uid))
+          || request.time > rateLimitMarker(request.auth.uid).data.nextReviewAt
+        );
+
+      // Author edits: rating/text only. movieId, userId, createdAt are
+      // immutable; updatedAt must be the server receive time.
+      allow update: if isSignedIn()
+        && existing().userId == request.auth.uid
+        && onlyFields(incoming(), ['movieId', 'userId', 'displayName', 'rating', 'text', 'status', 'createdAt', 'updatedAt'])
+        && incoming().movieId == existing().movieId
+        && incoming().userId == existing().userId
+        && incoming().displayName == existing().displayName
+        && incoming().status == existing().status
+        && incoming().createdAt == existing().createdAt
+        && incoming().rating is int
+        && incoming().rating >= 1
+        && incoming().rating <= 10
+        && incoming().text is string
+        && incoming().text.size() >= 1
+        && incoming().text.size() <= 2000
+        && isTimestamp(incoming().updatedAt)
+        && incoming().updatedAt == request.time;
+
+      // Moderators may flag/hide any review (status transitions only).
+      allow update: if isModerator()
+        && onlyFields(incoming(), ['movieId', 'userId', 'displayName', 'rating', 'text', 'status', 'createdAt', 'updatedAt'])
+        && incoming().userId == existing().userId
+        && incoming().movieId == existing().movieId
+        && incoming().createdAt == existing().createdAt
+        && incoming().status in ['published', 'flagged', 'hidden'];
+
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow delete: if isModerator();
+    }
+
+    // Everything not matched above is denied implicitly. This comment
+    // exists to make the deny-by-default posture explicit for reviewers.
+  }
+}

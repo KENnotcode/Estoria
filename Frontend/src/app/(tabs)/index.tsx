@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useState, useEffect } from 'react';
+import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
@@ -13,6 +13,7 @@ import { border, radius, spacing, surface, type } from '../../../constants/theme
 import { useColors } from '../../../hooks/useColors';
 import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
 import { isUpcomingRelease } from '../../../utils/format';
+import { useAuth } from '../../../context/AuthContext';
 
 const meridianImage = require('../../../assets/images/poster-meridian.jpg');
 
@@ -26,12 +27,37 @@ const CATEGORIES = [
 
 const NOW = Date.now();
 
+function getTimeOfDay(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 18) return 'Afternoon';
+  return 'Evening';
+}
+
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { account } = useAuth();
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
   const { width: screenWidth } = useWindowDimensions();
+
+  useEffect(() => {
+    const updateTimeOfDay = () => setTimeOfDay(getTimeOfDay());
+    const interval = setInterval(updateTimeOfDay, 60_000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') updateTimeOfDay();
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, []);
+
+  const displayName = account?.name || 'Estoria member';
+  const avatarInitial = displayName.charAt(0).toUpperCase();
   const openMovie = (id: string, releaseDate?: string) => router.push({
     pathname: '/movie/[id]',
     params: { id, upcoming: releaseDate ? 'true' : undefined, releaseDate },
@@ -131,13 +157,25 @@ export default function HomeScreen() {
 
         <View style={styles.header}>
           <View style={styles.brandRow}>
-            <View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={styles.logoText}>E</Text></View>
+            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+              {account?.photoURL ? (
+                <Image source={{ uri: account.photoURL }} style={styles.logoImage} />
+              ) : (
+                <Text style={styles.logoText}>{avatarInitial}</Text>
+              )}
+            </View>
             <View>
-              <Text style={[styles.kicker, { color: colors.mutedForeground }]}>GOOD EVENING</Text>
-              <Text style={[styles.brand, { color: colors.foreground }]}>Estoria</Text>
+              <Text style={[styles.kicker, { color: colors.mutedForeground }]}>GOOD {timeOfDay.toUpperCase()}</Text>
+              <Text style={[styles.brand, { color: colors.foreground }]}>{displayName}</Text>
             </View>
           </View>
-          <AppPressable testID="home-profile" accessibilityLabel="Open profile" onPress={() => router.push('/profile')} accentColor={colors.primary} style={[styles.avatar, { backgroundColor: surface.raised, borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}><Text style={[styles.avatarText, { color: colors.primary }]}>E</Text></AppPressable>
+          <AppPressable testID="home-profile" accessibilityLabel="Open profile" onPress={() => router.push('/profile')} accentColor={colors.primary} style={[styles.avatar, { backgroundColor: surface.raised, borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
+            {account?.photoURL ? (
+              <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
+            ) : (
+              <Text style={[styles.avatarText, { color: colors.primary }]}>{avatarInitial}</Text>
+            )}
+          </AppPressable>
         </View>
 
         <View style={styles.content}>
@@ -207,10 +245,12 @@ const styles = StyleSheet.create({
   skeletonBrandCopy: { gap: 6, marginLeft: spacing.sm + 2 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   logo: { width: 34, height: 34, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: '100%', height: '100%', borderRadius: radius.md - 1 },
   logoText: { color: '#FFFFFF', fontSize: 18, fontFamily: type.hero.fontFamily },
   kicker: { ...type.kicker },
   brand: { fontSize: 21, lineHeight: 26, letterSpacing: -0.5, fontFamily: type.pageTitle.fontFamily },
   avatar: { width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
   avatarText: { fontSize: 15, fontFamily: type.cardTitle.fontFamily },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: spacing.xs + 2, marginBottom: spacing.lg },
   dotIndicator: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#3A3D45' },

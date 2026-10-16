@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import {
   createContext,
@@ -9,47 +8,57 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-
-const STORAGE_KEY = '@estoria/favorites';
+import { useAuth } from '@/context/AuthContext';
+import {
+  fetchFavorites,
+  toggleFavorite as persistFavoriteToggle,
+} from '@/services/favoritesRepository';
 
 type FavoritesContextValue = {
   favoriteIds: string[];
   isLoaded: boolean;
   isFavorite: (movieId: string) => boolean;
-  toggleFavorite: (movieId: string) => void;
+  toggleFavorite: (movieId: string) => Promise<void>;
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
-/** Reads persisted favorites, ignoring malformed payloads. */
-async function readStoredFavorites(): Promise<string[]> {
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    return [];
-  }
-
-  const parsed: unknown = JSON.parse(stored);
-  if (Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')) {
-    return parsed;
-  }
-
-  return [];
-}
-
 export function FavoritesProvider({ children }: { children: ReactNode }) {
+  const { account, isLoading: authLoading } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let isActive = true;
 
-    readStoredFavorites()
-      .then((ids) => {
+    if (authLoading) {
+      setIsLoaded(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    if (!account) {
+      setFavoriteIds([]);
+      setIsLoaded(true);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setFavoriteIds([]);
+    setIsLoaded(false);
+    fetchFavorites()
+      .then((favorites) => {
         if (isActive) {
-          setFavoriteIds(ids);
+          setFavoriteIds(favorites.map(({ movieId }) => movieId));
         }
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (isActive) {
+          setFavoriteIds([]);
+        }
+      })
       .finally(() => {
         if (isActive) {
           setIsLoaded(true);
@@ -59,24 +68,33 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [account, authLoading]);
 
-  useEffect(() => {
-    if (!isLoaded) {
+  const toggleFavorite = useCallback(async (movieId: string) => {
+    if (!account || !isLoaded) {
       return;
     }
 
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(favoriteIds)).catch(() => undefined);
-  }, [favoriteIds, isLoaded]);
-
-  const toggleFavorite = useCallback((movieId: string) => {
+    const wasFavorite = favoriteIds.includes(movieId);
     setFavoriteIds((current) =>
-      current.includes(movieId)
-        ? current.filter((id) => id !== movieId)
-        : [...current, movieId],
+      wasFavorite ? current.filter((id) => id !== movieId) : [...current, movieId],
     );
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+
+    try {
+      const isFavorite = await persistFavoriteToggle(movieId);
+      setFavoriteIds((current) => {
+        const withoutMovie = current.filter((id) => id !== movieId);
+        return isFavorite ? [...withoutMovie, movieId] : withoutMovie;
+      });
+    } catch (error) {
+      setFavoriteIds((current) => {
+        const withoutMovie = current.filter((id) => id !== movieId);
+        return wasFavorite ? [...withoutMovie, movieId] : withoutMovie;
+      });
+      throw error;
+    }
+  }, [account, favoriteIds, isLoaded]);
 
   const value = useMemo<FavoritesContextValue>(
     () => ({

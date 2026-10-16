@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { radius, spacing, type } from '../../../constants/theme';
@@ -29,7 +29,13 @@ export default function ProfileScreen() {
           <Text style={[styles.title, { color: colors.foreground }]}>Profile</Text>
           {account ? (
             <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}><Text style={styles.avatarText}>{account.name.charAt(0).toUpperCase()}</Text></View>
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                {account.photoURL ? (
+                  <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{account.name.charAt(0).toUpperCase()}</Text>
+                )}
+              </View>
               <View style={styles.profileCopy}><Text style={[styles.name, { color: colors.foreground }]}>{account.name}</Text><Text style={[styles.email, { color: colors.mutedForeground }]}>{account.email}</Text></View>
               <Feather name="check" size={16} color={colors.primary} />
             </View>
@@ -57,6 +63,7 @@ const styles = StyleSheet.create({
   title: { ...type.pageTitle, marginBottom: spacing.xl },
   profileCard: { borderRadius: radius.lg + 2, padding: spacing.lg - 1, flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 52, height: 52, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
   avatarText: { color: '#FFFFFF', ...type.hero, fontSize: 22, lineHeight: 28 },
   profileCopy: { flex: 1, marginLeft: spacing.md + 1 },
   name: { ...type.cardTitle, fontSize: 16 },

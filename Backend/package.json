@@ -1,0 +1,16 @@
+{
+  "name": "estoria-backend",
+  "description": "Firebase backend for Estoria: rules, indexes, Cloud Functions.",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix functions run build",
+    "typecheck": "npm --prefix functions run typecheck",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy": "firebase deploy"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.34.0"
+  }
+}
