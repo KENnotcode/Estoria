@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { AppPressable } from '@/components/AppPressable';
 import { useFavorites } from '@/context/FavoritesContext';
 import { border, poster, radius, surface, type } from '@/constants/theme';
@@ -27,6 +27,15 @@ export function MovieCard({
   const colors = useColors();
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorite = isFavorite(movie.id);
+
+  const handleFavoritePress = async () => {
+    try {
+      await toggleFavorite(movie.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not save this movie.';
+      Alert.alert('Unable to save', message);
+    }
+  };
 
   return (
     <View testID={`movie-card-${movie.id}`} style={[styles.card, { width }]}>
@@ -65,7 +74,7 @@ export function MovieCard({
             favorite ? `Remove ${movie.title} from favorites` : `Add ${movie.title} to favorites`
           }
           accessibilityState={{ selected: favorite }}
-          onPress={() => toggleFavorite(movie.id)}
+          onPress={handleFavoritePress}
           disabled={false}
           accentColor={colors.primary}
           showFocusRing={false}

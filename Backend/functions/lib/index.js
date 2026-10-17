@@ -41,6 +41,9 @@ function requireSignedInUid(authData) {
 }
 /** Maps internal validation errors to callable error codes. */
 function mapKnownErrors(error) {
+    if (error instanceof https_1.HttpsError) {
+        throw error;
+    }
     if (error instanceof validation_1.ValidationError) {
         throw new https_1.HttpsError('invalid-argument', error.message);
     }
@@ -49,7 +52,10 @@ function mapKnownErrors(error) {
             retryAfterMs: error.retryAfterMs,
         });
     }
-    throw error;
+    // Wrap any unexpected error (Firestore errors, etc.) as an internal
+    // callable error so the client always receives a recognized error code
+    // instead of an opaque failure.
+    throw new https_1.HttpsError('internal', 'An internal error occurred while processing your request.');
 }
 /** Matches the firestore.rules displayName length limit. */
 function clampDisplayName(value, fallback) {
@@ -60,8 +66,8 @@ function clampDisplayName(value, fallback) {
     return trimmed.length >= 1 ? trimmed : fallback;
 }
 exports.toggleFavorite = (0, https_1.onCall)(async (request) => {
-    const uid = requireSignedInUid(request.auth);
     try {
+        const uid = requireSignedInUid(request.auth);
         const movieId = (0, validation_1.requireMovieId)(request.data?.movieId);
         const favoriteRef = db.doc(`users/${uid}/favorites/${movieId}`);
         const markerRef = db.doc(`rateLimits/${uid}`);

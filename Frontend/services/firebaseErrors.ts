@@ -53,6 +53,24 @@ export function describeFirebaseError(error: unknown): string {
     case 'internal':
     case 'unavailable':
       return 'The service is busy right now. Try again in a moment.';
+    case 'unknown':
+      return 'An unexpected error occurred. Please try again.';
+    case 'deadline-exceeded':
+      return 'The request took too long. Please try again.';
+    case 'not-found':
+      return 'The requested resource was not found. Please try again.';
+    case 'failed-precondition':
+      return 'The request could not be completed at this time. Please try again.';
+    case 'aborted':
+      return 'The request was cancelled. Please try again.';
+    case 'out-of-range':
+      return 'The request was out of range. Please try again.';
+    case 'unimplemented':
+      return 'This feature is not available yet.';
+    case 'data-loss':
+      return 'A data error occurred. Please try again.';
+    case 'cancelled':
+      return 'The request was cancelled. Please try again.';
     default:
       return 'Something went wrong. Please try again.';
   }

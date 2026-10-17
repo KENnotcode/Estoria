@@ -259,7 +259,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               onBlur={() => blurField('email')}
               error={touched.email ? errors.email : undefined}
               colors={colors}
-              placeholder="you@example.com"
+              placeholder="youremail@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"

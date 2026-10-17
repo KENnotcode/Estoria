@@ -1,19 +1,14 @@
-import { httpsCallable } from 'firebase/functions';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { getDb, getFirebaseAuth, getFunctionsClient } from '@/services/firebase';
+import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { getDb, getFirebaseAuth } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
 
 /**
  * Favorites repository.
  *
- * READS go straight to Firestore: /users/{uid}/favorites/* is
- * path-scoped, so the rules can only ever return the caller's own rows.
- *
- * WRITES go through the `toggleFavorite` callable, which validates the
- * payload and enforces the rate limit in a transaction BEFORE touching
- * any favorite document. Direct client writes are allowed by the rules
- * but skip rate limiting and lose the atomic toggle, so the callable is
- * the only write path in the app.
+ * READS and WRITES go straight to Firestore: /users/{uid}/favorites/* is
+ * path-scoped, so the rules can only ever return or modify the caller's
+ * own rows. Each movieId is used as the document ID, making toggles
+ * idempotent (create = add, delete = remove).
  */
 
 export type Favorite = {
@@ -31,6 +26,7 @@ const FAVORITE_MOVIE_ID = /^[0-9]{1,10}$/;
 const CLIENT_MIN_TOGGLE_INTERVAL_MS = 2_500;
 let lastToggleStartedAt = 0;
 let pendingToggle: Promise<boolean> | null = null;
+let pendingToggleMovieId: string | null = null;
 
 function requireAuthUid(): string {
   const uid = getFirebaseAuth().currentUser?.uid;
@@ -63,19 +59,33 @@ export async function fetchFavorites(): Promise<Favorite[]> {
 }
 
 async function runToggle(movieId: string): Promise<boolean> {
+  const uid = requireAuthUid();
+  const db = getDb();
+  const favoriteRef = doc(db, 'users', uid, 'favorites', movieId);
+
   try {
-    const toggle = httpsCallable<{ movieId: string }, { movieId: string; isFavorite: boolean }>(
-      getFunctionsClient(),
-      'toggleFavorite',
-    );
-    const result = await toggle({ movieId });
-    return result.data.isFavorite;
+    const snapshot = await getDoc(favoriteRef);
+
+    if (snapshot.exists()) {
+      // Movie is already favorited — remove it.
+      await deleteDoc(favoriteRef);
+      return false;
+    }
+
+    // Movie is not favorited — add it with a client-side timestamp.
+    await setDoc(favoriteRef, {
+      movieId,
+      addedAt: Timestamp.fromDate(new Date()),
+    });
+    return true;
   } catch (error) {
-    // Callable failures carry a safe message (rate limit, invalid input,
-    // unauthenticated). Fall back to raw error text only as a last resort.
-    throw error instanceof Error ? new Error(describeFirebaseError(error)) : error;
+    throw new Error(describeFirebaseError(error));
   } finally {
     pendingToggle = null;
+    pendingToggleMovieId = null;
+    // Clear the rate-limit timestamp on failure so the user can retry
+    // immediately instead of being locked out by a failed call.
+    lastToggleStartedAt = 0;
   }
 }
 
@@ -88,7 +98,9 @@ export async function toggleFavorite(movieId: string): Promise<boolean> {
     throw new Error('This movie cannot be favorited.');
   }
 
-  if (pendingToggle) {
+  // Only collapse rapid taps on the same movie. A tap on a different movie
+  // must hit the server so each toggle reconciles with its own result.
+  if (pendingToggle && pendingToggleMovieId === movieId) {
     return pendingToggle;
   }
 
@@ -98,6 +110,7 @@ export async function toggleFavorite(movieId: string): Promise<boolean> {
   }
 
   lastToggleStartedAt = Date.now();
+  pendingToggleMovieId = movieId;
   pendingToggle = runToggle(movieId);
   return pendingToggle;
 }

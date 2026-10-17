@@ -74,6 +74,16 @@ export default function MovieDetailsScreen() {
   }
 
   const favorite = isFavorite(movie.id);
+
+  const handleFavoritePress = async () => {
+    try {
+      await toggleFavorite(movie.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not save this movie.';
+      Alert.alert('Unable to save', message);
+    }
+  };
+
   const releaseDate = movie.releaseDate || routeReleaseDate || '';
   const releaseEta = formatReleaseDate(releaseDate);
   const isUpcoming = upcoming === 'true' || (!!releaseDate && releaseDate >= TODAY);
@@ -87,7 +97,7 @@ export default function MovieDetailsScreen() {
               <AppPressable accessibilityLabel="Go back" onPress={() => router.back()} accentColor={colors.primary} style={[styles.iconButton, { borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
                 <Feather name="arrow-left" size={20} color={colors.foreground} />
               </AppPressable>
-              <AppPressable accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'} accessibilityState={{ selected: favorite }} onPress={() => toggleFavorite(movie.id)} accentColor={colors.primary} style={[styles.iconButton, { borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
+              <AppPressable accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'} accessibilityState={{ selected: favorite }} onPress={handleFavoritePress} accentColor={colors.primary} style={[styles.iconButton, { borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
                 <Feather name="heart" size={19} color={favorite ? colors.primary : colors.foreground} />
               </AppPressable>
             </View>
@@ -112,7 +122,7 @@ export default function MovieDetailsScreen() {
             <AppPressable
               accessibilityLabel={favorite ? `Remove ${movie.title} from favorites` : `Save ${movie.title} to favorites`}
               accessibilityState={{ selected: favorite }}
-              onPress={() => toggleFavorite(movie.id)}
+              onPress={handleFavoritePress}
               accentColor={colors.primary}
               style={[styles.secondaryAction, { borderColor: border.hairline }]}
               pressedStyle={styles.actionPressed}

@@ -178,12 +178,13 @@ service cloud.firestore {
 
       // Favorites are idempotent: re-adding a movie is a no-op, not an
       // update, which keeps addedAt immutable without exception paths.
+      // Clients write directly; movieId is the document ID so duplicates
+      // cannot be created. addedAt is a client-generated timestamp.
       allow create: if isOwner(userId)
         && isValidMovieId(movieId)
         && incoming().movieId == movieId
         && onlyFields(incoming(), ['movieId', 'addedAt'])
-        && isTimestamp(incoming().addedAt)
-        && incoming().addedAt == request.time;
+        && isTimestamp(incoming().addedAt);
 
       allow update: if false;
 

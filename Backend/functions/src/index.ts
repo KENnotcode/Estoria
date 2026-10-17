@@ -57,6 +57,9 @@ function requireSignedInUid(authData: SignedInAuth | undefined): string {
 
 /** Maps internal validation errors to callable error codes. */
 function mapKnownErrors(error: unknown): never {
+  if (error instanceof HttpsError) {
+    throw error;
+  }
   if (error instanceof ValidationError) {
     throw new HttpsError('invalid-argument', error.message);
   }
@@ -65,7 +68,10 @@ function mapKnownErrors(error: unknown): never {
       retryAfterMs: error.retryAfterMs,
     });
   }
-  throw error;
+  // Wrap any unexpected error (Firestore errors, etc.) as an internal
+  // callable error so the client always receives a recognized error code
+  // instead of an opaque failure.
+  throw new HttpsError('internal', 'An internal error occurred while processing your request.');
 }
 
 /** Matches the firestore.rules displayName length limit. */
@@ -89,9 +95,9 @@ interface ToggleFavoriteData {
 }
 
 export const toggleFavorite = onCall(async (request) => {
-  const uid = requireSignedInUid(request.auth as SignedInAuth | undefined);
-
   try {
+    const uid = requireSignedInUid(request.auth as SignedInAuth | undefined);
+
     const movieId = requireMovieId((request.data as ToggleFavoriteData | undefined)?.movieId);
 
     const favoriteRef = db.doc(`users/${uid}/favorites/${movieId}`);
