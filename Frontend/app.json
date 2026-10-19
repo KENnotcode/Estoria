@@ -4,7 +4,7 @@
     "slug": "Estoria",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/bastaIcon2.png",
     "scheme": "estoria",
     "userInterfaceStyle": "automatic",
     "extra": {
@@ -15,32 +15,33 @@
       }
     },
     "ios": {
-      "icon": "./assets/images/EstoriaIconTransparent.png"
+      "icon": "./assets/images/bastaIcon2.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/EstoriaIconTransparent.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/bastaIcon2.png",
+        "monochromeImage": "./assets/images/bastaIcon2.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.kencantcode.Estoria"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/bastaIcon2.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#121212", 
-          "image": "./assets/images/EstoriaIconTransparent.png",
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/bastaIcon2.png",
           "imageWidth": 180,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#121212",
-            "image": "./assets/images/EstoriaIconTransparent.png"
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/images/bastaIcon2.png"
           }
         }
       ]
