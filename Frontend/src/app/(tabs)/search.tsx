@@ -6,9 +6,11 @@ import { GenreFilter } from '../../../components/GenreFilter';
 import { MovieCard } from '../../../components/MovieCard';
 import { MovieGridSkeleton } from '../../../components/Skeleton';
 import { SearchBar } from '../../../components/SearchBar';
+import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { poster, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useGenres, useMoviesByGenre, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function SearchScreen() {
@@ -38,15 +40,15 @@ export default function SearchScreen() {
   const genreList = ['All', ...genres];
   const loading = query.trim() ? searchLoading : selectedGenre !== 'All' ? genreLoading : popularLoading;
   const error = genreError || searchError;
+  const { isOnline } = useNetworkStatus();
 
-  // Posters are one of two measured columns, so the metric scales with the
-  // viewport instead of a fixed pixel width.
   const posterWidth =
     (screenWidth - spacing.screen * 2 - poster.gridGutter) / 2;
 
   if (error) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <NetworkStatusBanner isOnline={isOnline} />
         <EmptyState
           title="Could not search movies"
           message="Check your internet connection and try again."
@@ -65,6 +67,7 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <NetworkStatusBanner isOnline={isOnline} />
       <FlatList
         data={filteredMovies}
         numColumns={2}

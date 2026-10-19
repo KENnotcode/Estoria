@@ -28,7 +28,7 @@ export const MOVIE_QUERY_KEYS = {
   recommendations: (id: string) => ['movies', 'recommendations', id],
 } as const;
 
-/** A category row rendered on the home screen, e.g. `{ label: 'Horror', genre: 'Horror' }`. */
+
 export type MovieCategory = {
   label: string;
   genre: string;

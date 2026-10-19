@@ -9,6 +9,8 @@ import { MovieCard } from '../../../components/MovieCard';
 import { MovieSection } from '../../../components/MovieSection';
 import { MovieRailSkeleton, Skeleton } from '../../../components/Skeleton';
 import { SearchBar } from '../../../components/SearchBar';
+import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { border, radius, spacing, surface, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
@@ -78,7 +80,7 @@ export default function HomeScreen() {
   const { data: popular = [], isLoading: popularLoading, error: popularError, refetch: refetchPopular } = usePopularMovies();
   const { data: trending = [], isLoading: trendingLoading, error: trendingError, refetch: refetchTrending } = useTrendingMovies();
   const { data: topRated = [], isLoading: topRatedLoading, error: topRatedError, refetch: refetchTopRated } = useTopRatedMovies();
-  const { data: upcoming = [] } = useUpcomingMovies();
+  const { data: upcoming = [], isLoading: upcomingLoading, error: upcomingError, refetch: refetchUpcoming } = useUpcomingMovies();
 
   const featuredMovie = popular[0];
   const latest = [...popular].sort((a, b) => (b.releaseYear ?? 0) - (a.releaseYear ?? 0)).slice(0, 5);
@@ -87,9 +89,6 @@ export default function HomeScreen() {
 
   const carouselMovies = topRatedMovies.length > 0 ? topRatedMovies : popular.slice(0, 10);
 
-  // TMDB's upcoming list still returns titles that already opened, so keep only
-  // releases that have not happened yet and order them soonest first. Anything
-  // without a usable date is dropped too, since it can never show a countdown.
   const upcomingMovies = upcoming
     .filter((movie) => isUpcomingRelease(movie.releaseDate, NOW))
     .sort((a, b) => (a.releaseDate < b.releaseDate ? -1 : a.releaseDate > b.releaseDate ? 1 : 0));
@@ -101,8 +100,9 @@ export default function HomeScreen() {
     movies: (categoryResults[index]?.data ?? []).slice(0, 6),
   }));
 
-  const loading = popularLoading || trendingLoading || topRatedLoading;
-  const error = popularError || trendingError || topRatedError;
+  const loading = popularLoading || trendingLoading || topRatedLoading || upcomingLoading;
+  const error = popularError || trendingError || topRatedError || upcomingError;
+  const { isOnline } = useNetworkStatus();
 
   if (loading) {
     const heroWidth = screenWidth - spacing.screen * 2;
@@ -111,6 +111,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 112 }}
       >
+        <NetworkStatusBanner isOnline={isOnline} />
         <View style={styles.skeletonHeader}>
           <View style={styles.brandRow}>
             <Skeleton width={34} height={34} borderRadius={11} />
@@ -140,11 +141,17 @@ export default function HomeScreen() {
   if (error || carouselMovies.length === 0) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <NetworkStatusBanner isOnline={isOnline} />
         <EmptyState
           title="Could not load movies"
           message="Check your internet connection and try again."
           actionLabel="Retry"
-          onAction={() => { refetchPopular(); refetchTrending(); refetchTopRated(); }}
+          onAction={() => {
+            refetchPopular();
+            refetchTrending();
+            refetchTopRated();
+            refetchUpcoming();
+          }}
           icon="alert-triangle"
         />
       </View>
@@ -153,6 +160,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <NetworkStatusBanner isOnline={isOnline} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 112 }}>
 
         <View style={styles.header}>
@@ -267,7 +275,6 @@ const styles = StyleSheet.create({
   discoveryLink: { ...type.label },
   discoveryLinkHit: {
     alignSelf: 'flex-start',
-    // Keeps the hit target at least 44px tall without moving the baseline.
     paddingVertical: 6,
   },
 });

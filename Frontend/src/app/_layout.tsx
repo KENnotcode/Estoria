@@ -17,30 +17,16 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 
-// Prevent the native splash screen from auto-hiding until fonts and auth
-// have both settled. This avoids flashing the main UI before the auth guard
-// has had a chance to redirect unauthenticated users to /login.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-/**
- * Route guard: signed-out users always land on the auth screens, and a
- * successful sign-in / sign-up immediately swaps the auth stack for the
- * main tab UI. Runs after auth state settles so a restored session never
- * flashes the login screen.
- *
- * Returns null so the root layout can decide whether to render the matched
- * route (<Slot />) or keep showing the splash screen.
- */
 function AuthGuard() {
   const { account, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    // While Firebase is still restoring the session, hold off — redirecting
-    // too early would kick an authenticated user back to /login.
     if (isLoading) {
       return;
     }
@@ -57,11 +43,6 @@ function AuthGuard() {
   return null;
 }
 
-/**
- * Renders the app chrome (providers, status bar, error boundary) and
- * delegates the actual route to <Slot />. The auth guard runs inside the
- * providers so `useAuth()` is safe here.
- */
 function AppShell() {
   return (
     <SafeAreaProvider>
@@ -74,25 +55,15 @@ function AppShell() {
   );
 }
 
-/**
- * Waits for Firebase auth to settle, then renders the matched route via
- * <Slot />. While auth is still loading, returns null so the native splash
- * screen remains visible and no UI flashes before the redirect decision.
- */
 function AuthAwareSlot() {
   const { isLoading: authLoading } = useAuth();
 
-  // Hide the native splash screen once auth has settled. This is a side
-  // effect on an external system, not React state, so it belongs in an
-  // effect rather than being derived from state.
   useEffect(() => {
     if (!authLoading) {
       SplashScreen.hideAsync();
     }
   }, [authLoading]);
 
-  // While auth is still being restored, render nothing — the native splash
-  // screen keeps the screen from flashing blank or showing the wrong UI.
   if (authLoading) {
     return null;
   }

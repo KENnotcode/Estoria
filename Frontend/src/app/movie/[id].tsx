@@ -7,10 +7,12 @@ import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
 import { MovieRailSkeleton, Skeleton } from '../../../components/Skeleton';
+import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { useFavorites } from '../../../context/FavoritesContext';
 import { border, radius, spacing, surface, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useMovieDetails, useRecommendations } from '../../../hooks/useMovies';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -26,7 +28,6 @@ const formatReleaseDate = (releaseDate: string) => {
   }).format(date);
 };
 
-/** Placeholder shaped like the loaded detail layout. */
 function DetailsSkeleton() {
   return (
     <View accessibilityElementsHidden>
@@ -56,10 +57,12 @@ export default function MovieDetailsScreen() {
   const { data: movie, isLoading, error } = useMovieDetails(id ?? '');
   const { data: recommendations = [] } = useRecommendations(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isOnline } = useNetworkStatus();
 
   if (isLoading) {
     return (
       <ScrollView style={[styles.screen, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+        <NetworkStatusBanner isOnline={isOnline} />
         <DetailsSkeleton />
       </ScrollView>
     );
@@ -68,6 +71,7 @@ export default function MovieDetailsScreen() {
   if (error || !movie) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <NetworkStatusBanner isOnline={isOnline} />
         <EmptyState title="Movie not found" message="The film you were looking for is unavailable." actionLabel="Go back" onAction={() => router.back()} icon="film" />
       </View>
     );

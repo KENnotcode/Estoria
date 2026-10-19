@@ -3,14 +3,9 @@ import { useRouter } from 'expo-router';
 import type { AppMovie } from '@/types/movie';
 
 type OpenMovieOptions = {
-  /** Set for unreleased titles so the details screen shows the release estimate. */
   releaseDate?: string;
 };
 
-/**
- * Single place that knows how to navigate to a movie, so every screen builds
- * the same route params.
- */
 export function useOpenMovie() {
   const router = useRouter();
 

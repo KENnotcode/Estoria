@@ -5,10 +5,12 @@ import { useRouter } from 'expo-router';
 import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
 import { Skeleton } from '../../../components/Skeleton';
+import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { poster, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useFavorites } from '../../../context/FavoritesContext';
 import { useMovieDetails } from '../../../hooks/useMovies';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 
 function FavoriteItem({ id, posterWidth, onOpen }: { id: string; posterWidth: number; onOpen: (id: string) => void }) {
   const { data: movie, isLoading } = useMovieDetails(id);
@@ -25,14 +27,15 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const { favoriteIds } = useFavorites();
+  const { isOnline } = useNetworkStatus();
 
-  // Same measured two-column poster metric used everywhere else.
   const posterWidth = (screenWidth - spacing.screen * 2 - poster.gridGutter) / 2;
 
   const openMovie = (id: string) => router.push({ pathname: '/movie/[id]', params: { id } });
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <NetworkStatusBanner isOnline={isOnline} />
       <FlatList
         data={favoriteIds}
         keyExtractor={(item) => item}
