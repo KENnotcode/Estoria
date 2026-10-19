@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { FavoritesProvider } from '../../context/FavoritesContext';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
+import { NetworkProvider } from '../../context/NetworkContext';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -47,9 +48,11 @@ function AppShell() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AuthAwareSlot />
-        </AuthProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <AuthAwareSlot />
+          </AuthProvider>
+        </NetworkProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
