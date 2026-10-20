@@ -89,7 +89,7 @@ export function getFirebaseAuth(): Auth {
               persistence: getReactNativePersistence(AsyncStorage),
             });
 
-      if (useEmulators()) {
+      if (shouldUseEmulators()) {
         connectAuthEmulator(authInstance, `http://${emulatorHost()}:9099`);
       }
     } catch (error) {
@@ -124,7 +124,7 @@ let dbInstance: Firestore | null = null;
 export function getDb(): Firestore {
   if (!dbInstance) {
     dbInstance = getFirestore(getFirebaseApp());
-    if (useEmulators()) {
+    if (shouldUseEmulators()) {
       connectFirestoreEmulator(dbInstance, emulatorHost(), 8080);
     }
   }
@@ -136,7 +136,7 @@ let functionsInstance: Functions | null = null;
 export function getFunctionsClient(): Functions {
   if (!functionsInstance) {
     functionsInstance = getFunctions(getFirebaseApp());
-    if (useEmulators()) {
+    if (shouldUseEmulators()) {
       connectFunctionsEmulator(functionsInstance, emulatorHost(), 5001);
     }
   }
@@ -144,7 +144,7 @@ export function getFunctionsClient(): Functions {
 }
 
 /** Local emulator suite (firebase emulators:start in Backend/). */
-function useEmulators(): boolean {
+function shouldUseEmulators(): boolean {
   return __DEV__ && process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true';
 }
 

@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { getDb, getFirebaseAuth } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
+import { parseFavoriteDoc } from '@/types/firestore';
 
 
 export type Favorite = {
@@ -32,10 +33,10 @@ export async function fetchFavorites(): Promise<Favorite[]> {
     );
 
     return snapshot.docs.map((favoriteDoc) => {
-      const data = favoriteDoc.data();
+      const doc = parseFavoriteDoc(favoriteDoc);
       return {
-        movieId: String(data.movieId ?? favoriteDoc.id),
-        addedAt: data.addedAt?.toDate?.() ?? null,
+        movieId: doc.movieId,
+        addedAt: doc.addedAt,
       };
     });
   } catch (error) {

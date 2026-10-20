@@ -5,19 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { HeroCarousel } from '../../../components/HeroCarousel';
-import { MovieCard } from '../../../components/MovieCard';
 import { MovieSection } from '../../../components/MovieSection';
 import { MovieRailSkeleton, Skeleton } from '../../../components/Skeleton';
 import { SearchBar } from '../../../components/SearchBar';
 import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
+import { UpcomingRail } from '../../../components/UpcomingRail';
+import { DiscoveryCard } from '../../../components/DiscoveryCard';
+import { CategoryRow } from '../../../components/CategoryRow';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { border, radius, spacing, surface, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
 import { isUpcomingRelease } from '../../../utils/format';
 import { useAuth } from '../../../context/AuthContext';
-
-const meridianImage = require('../../../assets/images/poster-meridian.jpg');
 
 const CATEGORIES = [
   { label: 'Action', genre: 'Action' },
@@ -210,35 +210,18 @@ export default function HomeScreen() {
             <Text style={[styles.browseTitle, { color: colors.foreground }]}>Browse movies by category</Text>
           </View>
           {moviesByCategory.map(({ label, genre, movies }) => (
-            <MovieSection
-              key={label}
-              title={label}
-              movies={movies}
-              onSeeAll={() => router.push({ pathname: '/search', params: { genre } })}
-            />
+            <CategoryRow key={label} label={label} genre={genre} movies={movies} />
           ))}
 
           {upcomingMovies.length > 0 ? (
-            <View style={styles.soonWrap}>
-              <View style={[styles.soonHeader, { backgroundColor: colors.primary }]}>
-                <Text style={styles.soonHeaderText}>Soon on Estoria</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowContent}>
-                {upcomingMovies.slice(0, 10).map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} eta={formatEta(movie.releaseDate)} showRating={false} onPress={() => openMovie(movie.id, movie.releaseDate)} />
-                ))}
-              </ScrollView>
-            </View>
+            <UpcomingRail
+              movies={upcomingMovies}
+              formatEta={formatEta}
+              onPress={openMovie}
+            />
           ) : null}
 
-          <View style={[styles.discoveryCard, { backgroundColor: colors.card }]}>
-            <Image source={meridianImage} resizeMode="cover" style={styles.discoveryImage} />
-            <View style={styles.discoveryCopy}>
-              <Text style={[styles.kicker, { color: colors.primary }]}>WEEKLY DISCOVERY</Text>
-              <Text style={[styles.discoveryTitle, { color: colors.foreground }]}>Stories worth staying up for.</Text>
-              <AppPressable accessibilityLabel="Explore the collection" onPress={() => router.push('/search')} accentColor={colors.primary} style={styles.discoveryLinkHit}><Text style={[styles.discoveryLink, { color: colors.mutedForeground }]}>Explore the collection  →</Text></AppPressable>
-            </View>
-          </View>
+          <DiscoveryCard posterImage={require('../../../assets/images/poster-meridian.jpg')} onPress={() => router.push('/search')} />
         </View>
       </ScrollView>
     </View>
@@ -265,16 +248,4 @@ const styles = StyleSheet.create({
   rowContent: { paddingRight: spacing.sm },
   browseHeader: { marginTop: spacing.section },
   browseTitle: { ...type.pageTitle },
-  soonWrap: { marginTop: spacing.section },
-  soonHeader: { alignSelf: 'flex-start', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, marginBottom: spacing.md + 2 },
-  soonHeaderText: { color: '#FFFFFF', ...type.sectionTitle },
-  discoveryCard: { marginTop: spacing.section, borderRadius: radius.lg + 2, overflow: 'hidden', flexDirection: 'row', minHeight: 132 },
-  discoveryImage: { width: 102, height: 132 },
-  discoveryCopy: { flex: 1, padding: spacing.lg - 1, justifyContent: 'center' },
-  discoveryTitle: { ...type.sectionTitle, marginTop: spacing.sm - 1, marginBottom: spacing.sm + 4 },
-  discoveryLink: { ...type.label },
-  discoveryLinkHit: {
-    alignSelf: 'flex-start',
-    paddingVertical: 6,
-  },
 });

@@ -1,6 +1,7 @@
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { getDb } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
+import { parseUserProfileDoc } from '@/types/firestore';
 
 /**
  * User profile repository.
@@ -59,15 +60,16 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
     if (!snapshot.exists()) {
       return null;
     }
-    const data = snapshot.data();
+    const docData = parseUserProfileDoc(snapshot);
+    if (!docData) return null;
     return {
       uid: snapshot.id,
-      displayName: typeof data.displayName === 'string' ? data.displayName : '',
-      email: typeof data.email === 'string' ? data.email : '',
-      role: data.role === 'admin' || data.role === 'moderator' ? data.role : 'user',
-      photoURL: typeof data.photoURL === 'string' ? data.photoURL : null,
-      createdAt: data.createdAt?.toDate?.() ?? null,
-      updatedAt: data.updatedAt?.toDate?.() ?? null,
+      displayName: docData.displayName,
+      email: docData.email,
+      role: docData.role,
+      photoURL: docData.photoURL,
+      createdAt: docData.createdAt,
+      updatedAt: docData.updatedAt,
     };
   } catch (error) {
     throw new Error(describeFirebaseError(error));

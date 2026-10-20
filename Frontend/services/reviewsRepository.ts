@@ -2,6 +2,7 @@ import { httpsCallable } from 'firebase/functions';
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { getDb, getFunctionsClient } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
+import { parseReviewDoc } from '@/types/firestore';
 
 /**
  * Reviews repository (shared collection).
@@ -52,16 +53,16 @@ export async function fetchReviewsForMovie(movieId: string): Promise<Review[]> {
     );
 
     return snapshot.docs.map((reviewDoc) => {
-      const data = reviewDoc.data();
+      const doc = parseReviewDoc(reviewDoc);
       return {
-        id: reviewDoc.id,
-        movieId: String(data.movieId),
-        userId: String(data.userId),
-        displayName: String(data.displayName ?? 'Estoria member'),
-        rating: Number(data.rating ?? 0),
-        text: String(data.text ?? ''),
-        status: data.status === 'flagged' || data.status === 'hidden' ? data.status : 'published',
-        createdAt: data.createdAt?.toDate?.() ?? null,
+        id: doc.id,
+        movieId: doc.movieId,
+        userId: doc.userId,
+        displayName: doc.displayName,
+        rating: doc.rating,
+        text: doc.text,
+        status: doc.status,
+        createdAt: doc.createdAt,
       };
     });
   } catch (error) {
