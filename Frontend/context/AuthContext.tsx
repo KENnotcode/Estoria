@@ -4,13 +4,13 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  updateProfile,
+  updateProfile as updateFirebaseProfile,
   type User,
 } from 'firebase/auth';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getFirebaseAuth } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
-import { completeUserProfile, createUserProfile, fetchUserProfile } from '@/services/usersRepository';
+import { completeUserProfile, createUserProfile, fetchUserProfile, updateUserProfile } from '@/services/usersRepository';
 
 /**
  * Authentication backed by Firebase Auth. Firestore user profiles are
@@ -35,6 +35,12 @@ export type ProfileSetupInput = {
   favoriteGenres: string[];
 };
 
+export type ProfileUpdateInput = {
+  displayName?: string;
+  photoURL?: string | null;
+  favoriteGenres?: string[];
+};
+
 type AuthContextValue = {
   account: Account | null;
   isLoading: boolean;
@@ -43,6 +49,7 @@ type AuthContextValue = {
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   completeProfile: (input: ProfileSetupInput) => Promise<void>;
+  updateProfile: (updates: ProfileUpdateInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -176,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       );
 
-      await updateProfile(credential.user, { displayName: name.trim() });
+      await updateFirebaseProfile(credential.user, { displayName: name.trim() });
 
       // The profile write is rules-validated to role 'user'; ownership is
       // the uid the Auth system just issued, so it cannot be mismatched.
@@ -252,9 +259,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [account],
   );
 
+  /**
+   * Updates the signed-in member's display name and/or profile picture.
+   * Writes to the Firestore profile document, syncs the Firebase Auth profile
+   * so the identity matches everywhere it is read, and updates the local
+   * account optimistically so the UI reflects the change immediately.
+   */
+  const updateProfile = useCallback(
+    async (updates: ProfileUpdateInput) => {
+      if (!account) {
+        throw new Error('You must be signed in to update your profile.');
+      }
+      try {
+        await updateUserProfile(account.uid, updates);
+
+        const auth = getFirebaseAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const firebaseUpdates: { displayName?: string | null; photoURL?: string | null } = {};
+          if (updates.displayName !== undefined) {
+            firebaseUpdates.displayName = updates.displayName.trim() || null;
+          }
+          if (updates.photoURL !== undefined) {
+            firebaseUpdates.photoURL = updates.photoURL;
+          }
+          if (Object.keys(firebaseUpdates).length > 0) {
+            await updateFirebaseProfile(currentUser, firebaseUpdates);
+          }
+        }
+
+        setAccount((previous) =>
+          previous
+            ? {
+                ...previous,
+                ...(updates.displayName !== undefined
+                  ? { name: updates.displayName.trim() }
+                  : {}),
+                ...(updates.photoURL !== undefined ? { photoURL: updates.photoURL } : {}),
+                ...(updates.favoriteGenres !== undefined
+                  ? { favoriteGenres: updates.favoriteGenres }
+                  : {}),
+              }
+            : previous,
+        );
+      } catch (error) {
+        throw new Error(describeAuthFailure(error));
+      }
+    },
+    [account],
+  );
+
   const value = useMemo(
-    () => ({ account, isLoading, signIn, signUp, sendPasswordReset, signOut, completeProfile }),
-    [account, isLoading, signIn, signUp, sendPasswordReset, signOut, completeProfile],
+    () => ({
+      account,
+      isLoading,
+      signIn,
+      signUp,
+      sendPasswordReset,
+      signOut,
+      completeProfile,
+      updateProfile,
+    }),
+    [account, isLoading, signIn, signUp, sendPasswordReset, signOut, completeProfile, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

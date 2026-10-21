@@ -144,7 +144,7 @@ export async function createUserProfile(input: {
  */
 export async function updateUserProfile(
   uid: string,
-  updates: { displayName?: string; photoURL?: string | null },
+  updates: { displayName?: string; photoURL?: string | null; favoriteGenres?: string[] },
 ): Promise<void> {
   const patch: Record<string, unknown> = {};
 
@@ -153,6 +153,9 @@ export async function updateUserProfile(
   }
   if (updates.photoURL !== undefined) {
     patch.photoURL = normalizePhotoURL(updates.photoURL);
+  }
+  if (updates.favoriteGenres !== undefined) {
+    patch.favoriteGenres = normalizeFavoriteGenres(updates.favoriteGenres);
   }
   if (Object.keys(patch).length === 0) {
     return;

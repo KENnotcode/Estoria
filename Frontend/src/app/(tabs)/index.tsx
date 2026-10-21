@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useState, useEffect, type ReactNode } from 'react';
 import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { HeroCarousel } from '../../../components/HeroCarousel';
 import { MovieSection } from '../../../components/MovieSection';
@@ -14,7 +13,7 @@ import { DiscoveryCard } from '../../../components/DiscoveryCard';
 import { CategoryRow } from '../../../components/CategoryRow';
 import { CompleteProfileModal } from '../../../components/CompleteProfileModal';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
-import { border, radius, spacing, surface, type } from '../../../constants/theme';
+import { radius, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
 import { isUpcomingRelease } from '../../../utils/format';
@@ -125,7 +124,6 @@ export default function HomeScreen() {
               <Skeleton width={64} height={16} borderRadius={6} />
             </View>
           </View>
-          <Skeleton width={38} height={38} borderRadius={19} />
         </View>
 
         <View style={styles.content}>
@@ -179,13 +177,6 @@ export default function HomeScreen() {
               <Text style={[styles.brand, { color: colors.foreground }]}>{displayName}</Text>
             </View>
           </View>
-          <AppPressable testID="home-profile" accessibilityLabel="Open profile" onPress={() => router.push('/profile')} accentColor={colors.primary} style={[styles.avatar, { backgroundColor: surface.raised, borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
-            {account?.photoURL ? (
-              <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
-            ) : (
-              <Text style={[styles.avatarText, { color: colors.primary }]}>{avatarInitial}</Text>
-            )}
-          </AppPressable>
         </View>
 
         <View style={styles.content}>
@@ -242,9 +233,9 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  header: { paddingHorizontal: spacing.screen, marginBottom: spacing.lg },
   content: { paddingHorizontal: spacing.screen },
-  skeletonHeader: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  skeletonHeader: { paddingHorizontal: spacing.screen, marginBottom: spacing.lg },
   skeletonBrandCopy: { gap: 6, marginLeft: spacing.sm + 2 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   logo: { width: 34, height: 34, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
@@ -252,9 +243,6 @@ const styles = StyleSheet.create({
   logoText: { color: '#FFFFFF', fontSize: 18, fontFamily: type.hero.fontFamily },
   kicker: { ...type.kicker },
   brand: { fontSize: 21, lineHeight: 26, letterSpacing: -0.5, fontFamily: type.pageTitle.fontFamily },
-  avatar: { width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
-  avatarText: { fontSize: 15, fontFamily: type.cardTitle.fontFamily },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: spacing.xs + 2, marginBottom: spacing.lg },
   dotIndicator: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#3A3D45' },
   rowContent: { paddingRight: spacing.sm },

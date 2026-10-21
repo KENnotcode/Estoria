@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '@/components/AppPressable';
 import { useAuth } from '@/context/AuthContext';
 import { border, radius, spacing, surface, type } from '@/constants/theme';
+import { FAVORITE_GENRE_OPTIONS } from '@/constants/genres';
 import { useColors } from '@/hooks/useColors';
 
 /**
@@ -37,26 +38,6 @@ type CompleteProfileModalProps = {
 /** Mirrors the repository's display-name rule so the button state matches the write. */
 const DISPLAY_NAME_MIN = 1;
 const DISPLAY_NAME_MAX = 50;
-
-/**
- * Curated subset of the TMDB genre names. A static list keeps the sheet
- * usable offline right after signup, where a network-backed genre list
- * would leave an empty selector.
- */
-const FAVORITE_GENRE_OPTIONS = [
-  'Action',
-  'Adventure',
-  'Animation',
-  'Comedy',
-  'Crime',
-  'Drama',
-  'Fantasy',
-  'Horror',
-  'Mystery',
-  'Romance',
-  'Sci-Fi',
-  'Thriller',
-];
 
 export function CompleteProfileModal({ onDismiss }: CompleteProfileModalProps) {
   const colors = useColors();

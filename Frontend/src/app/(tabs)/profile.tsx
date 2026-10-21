@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,8 @@ import { radius, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useFavorites } from '../../../context/FavoritesContext';
 import { useAuth } from '../../../context/AuthContext';
+import { EditProfileModal } from '@/components/EditProfileModal';
+import { PreferencesModal } from '@/components/PreferencesModal';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -14,10 +16,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { favoriteIds } = useFavorites();
   const { account, signOut } = useAuth();
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const rows = [
     { icon: 'bookmark', label: 'Saved movies', value: `${favoriteIds.length}`, action: () => router.push('/favorites') },
     { icon: 'clock', label: 'Watch history', value: '0', action: () => Alert.alert('Watch history', 'Your watch history will appear here after you finish a film.') },
-    { icon: 'settings', label: 'Preferences', value: '', action: () => Alert.alert('Preferences', 'Your viewing preferences are set for a quiet, cinematic discovery experience.') },
+    { icon: 'settings', label: 'Preferences', value: '', action: () => (account ? setPreferencesOpen(true) : router.push('/login')) },
     { icon: 'info', label: 'About Estoria', value: '', action: () => Alert.alert('Estoria', 'A place to find the stories you want to remember.') },
   ] as const;
 
@@ -28,17 +32,18 @@ export default function ProfileScreen() {
           <Text style={[styles.kicker, { color: colors.primary }]}>YOUR SPACE</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Profile</Text>
           {account ? (
-            <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => setEditProfileOpen(true)} style={({ pressed }) => [styles.profileCard, { backgroundColor: colors.card }, pressed && styles.pressedCard]}>
+              <View style={[styles.avatar, { backgroundColor: colors.primary, position: 'relative' }]}>
                 {account.photoURL ? (
                   <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
                 ) : (
                   <Text style={styles.avatarText}>{account.name.charAt(0).toUpperCase()}</Text>
                 )}
+                <Feather name="edit-2" size={14} color={colors.primary} style={styles.editIcon} />
               </View>
               <View style={styles.profileCopy}><Text style={[styles.name, { color: colors.foreground }]}>{account.name}</Text><Text style={[styles.email, { color: colors.mutedForeground }]}>{account.email}</Text></View>
               <Feather name="check" size={16} color={colors.primary} />
-            </View>
+            </Pressable>
           ) : (
             <Pressable accessibilityRole="button" onPress={() => router.push('/login')} style={[styles.profileCard, { backgroundColor: colors.card }]}>
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}><Feather name="user" size={22} color="#FFFFFF" /></View>
@@ -52,6 +57,10 @@ export default function ProfileScreen() {
           {account ? <Pressable accessibilityRole="button" onPress={() => Alert.alert('Sign out', 'Sign out of this device?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: () => void signOut() }])} style={({ pressed }) => [styles.logout, { borderColor: colors.border }, pressed && styles.pressed]}><Feather name="log-out" size={16} color={colors.mutedForeground} /><Text style={[styles.logoutText, { color: colors.mutedForeground }]}>Sign out</Text></Pressable> : null}
         </View>
       </ScrollView>
+      <EditProfileModal visible={editProfileOpen} onDismiss={() => setEditProfileOpen(false)} />
+      {preferencesOpen ? (
+        <PreferencesModal visible onDismiss={() => setPreferencesOpen(false)} />
+      ) : null}
     </View>
   );
 }
@@ -62,7 +71,9 @@ const styles = StyleSheet.create({
   kicker: { ...type.kicker, marginBottom: 6 },
   title: { ...type.pageTitle, marginBottom: spacing.xl },
   profileCard: { borderRadius: radius.lg + 2, padding: spacing.lg - 1, flexDirection: 'row', alignItems: 'center' },
+  pressedCard: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   avatar: { width: 52, height: 52, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  editIcon: { position: 'absolute', bottom: 6, right: 6 },
   avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
   avatarText: { color: '#FFFFFF', ...type.hero, fontSize: 22, lineHeight: 28 },
   profileCopy: { flex: 1, marginLeft: spacing.md + 1 },
