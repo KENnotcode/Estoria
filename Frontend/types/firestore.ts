@@ -25,6 +25,8 @@ export interface UserProfileDoc {
   email: string;
   role: 'user' | 'moderator' | 'admin';
   photoURL: string | null;
+  favoriteGenres: string[];
+  isProfileComplete: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -78,6 +80,13 @@ export function parseUserProfileDoc(
         ? data.role
         : 'user',
     photoURL: typeof data.photoURL === 'string' ? data.photoURL : null,
+    favoriteGenres: Array.isArray(data.favoriteGenres)
+      ? data.favoriteGenres.filter((genre: unknown): genre is string => typeof genre === 'string')
+      : [],
+    // The setup sheet is only skipped when the flag is explicitly true, so
+    // documents written before this feature existed are treated as
+    // incomplete and get the one-time sheet as well.
+    isProfileComplete: data.isProfileComplete === true,
     createdAt: data.createdAt?.toDate?.() ?? null,
     updatedAt: data.updatedAt?.toDate?.() ?? null,
   } as UserProfileDoc;

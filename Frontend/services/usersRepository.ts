@@ -20,6 +20,8 @@ export type UserProfile = {
   email: string;
   role: UserRole;
   photoURL: string | null;
+  favoriteGenres: string[];
+  isProfileComplete: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -28,6 +30,9 @@ const DISPLAY_NAME_MIN = 1;
 const DISPLAY_NAME_MAX = 50;
 const EMAIL_MAX = 254;
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHOTO_URL_MAX = 500;
+const FAVORITE_GENRES_MAX = 10;
+const GENRE_MAX = 40;
 
 export class ProfileValidationError extends Error {
   constructor(message: string) {
@@ -54,6 +59,29 @@ function requireEmail(value: string): string {
   return normalized;
 }
 
+function normalizePhotoURL(value: string | null): string | null {
+  if (value !== null && value.trim().length > PHOTO_URL_MAX) {
+    throw new ProfileValidationError('Photo URL is too long.');
+  }
+  return value;
+}
+
+function normalizeFavoriteGenres(value: string[]): string[] {
+  // Defensive: drop blanks and duplicates instead of failing the whole
+  // write over one malformed chip from an older client.
+  const genres = Array.from(
+    new Set(
+      value
+        .map((genre) => genre.trim())
+        .filter((genre) => genre.length >= 1 && genre.length <= GENRE_MAX),
+    ),
+  );
+  if (genres.length > FAVORITE_GENRES_MAX) {
+    throw new ProfileValidationError(`Pick at most ${FAVORITE_GENRES_MAX} favorite genres.`);
+  }
+  return genres;
+}
+
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
   try {
     const snapshot = await getDoc(doc(getDb(), 'users', uid));
@@ -68,6 +96,8 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
       email: docData.email,
       role: docData.role,
       photoURL: docData.photoURL,
+      favoriteGenres: docData.favoriteGenres,
+      isProfileComplete: docData.isProfileComplete,
       createdAt: docData.createdAt,
       updatedAt: docData.updatedAt,
     };
@@ -95,6 +125,9 @@ export async function createUserProfile(input: {
       displayName,
       email,
       role: 'user',
+      // The post-signup setup sheet stays open until this flips to true.
+      favoriteGenres: [],
+      isProfileComplete: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -119,10 +152,7 @@ export async function updateUserProfile(
     patch.displayName = requireDisplayName(updates.displayName);
   }
   if (updates.photoURL !== undefined) {
-    if (updates.photoURL !== null && updates.photoURL.trim().length > 500) {
-      throw new ProfileValidationError('Photo URL is too long.');
-    }
-    patch.photoURL = updates.photoURL;
+    patch.photoURL = normalizePhotoURL(updates.photoURL);
   }
   if (Object.keys(patch).length === 0) {
     return;
@@ -132,6 +162,39 @@ export async function updateUserProfile(
 
   try {
     await updateDoc(doc(getDb(), 'users', uid), patch);
+  } catch (error) {
+    throw new Error(describeFirebaseError(error));
+  }
+}
+
+/**
+ * Finishes the post-signup setup sheet: persists the personalization fields
+ * and flips isProfileComplete to true in a single write. The merge write
+ * leaves createdAt/role/email untouched and still succeeds when the profile
+ * document does not exist yet (the sheet can race the signup profile write).
+ */
+export async function completeUserProfile(input: {
+  uid: string;
+  displayName: string;
+  photoURL: string | null;
+  favoriteGenres: string[];
+}): Promise<void> {
+  const displayName = requireDisplayName(input.displayName);
+  const photoURL = normalizePhotoURL(input.photoURL);
+  const favoriteGenres = normalizeFavoriteGenres(input.favoriteGenres);
+
+  try {
+    await setDoc(
+      doc(getDb(), 'users', input.uid),
+      {
+        displayName,
+        photoURL,
+        favoriteGenres,
+        isProfileComplete: true,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
   } catch (error) {
     throw new Error(describeFirebaseError(error));
   }

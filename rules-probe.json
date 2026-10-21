@@ -1,0 +1,20 @@
+{
+  "error": {
+    "code": 403,
+    "message": "The caller does not have permission",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "IAM_PERMISSION_DENIED",
+        "domain": "iam.googleapis.com",
+        "metadata": {
+          "resource": "projects/estoria-1c032/releases/cloud-firestore",
+          "error_info_id": "CiQwMWExNWFiOC1jZTBlLTc4MjQtYTc2NC05OGU2YWY2MzFkZWQSL3Byb2plY3RzL2VzdG9yaWEtMWMwMzIvcmVsZWFzZXMvY2xvdWQtZmlyZXN0b3Jl",
+          "troubleshooter_url": "https://console.cloud.google.com/iam-admin/troubleshooter/summary;errorId=CiQwMWExNWFiOC1jZTBlLTc4MjQtYTc2NC05OGU2YWY2MzFkZWQSL3Byb2plY3RzL2VzdG9yaWEtMWMwMzIvcmVsZWFzZXMvY2xvdWQtZmlyZXN0b3Jl",
+          "permission": "firebaserules.releases.get"
+        }
+      }
+    ]
+  }
+}

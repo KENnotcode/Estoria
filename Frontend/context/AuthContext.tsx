@@ -10,7 +10,7 @@ import {
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getFirebaseAuth } from '@/services/firebase';
 import { describeFirebaseError } from '@/services/firebaseErrors';
-import { createUserProfile, fetchUserProfile } from '@/services/usersRepository';
+import { completeUserProfile, createUserProfile, fetchUserProfile } from '@/services/usersRepository';
 
 /**
  * Authentication backed by Firebase Auth. Firestore user profiles are
@@ -24,6 +24,15 @@ export type Account = {
   name: string;
   email: string;
   photoURL: string | null;
+  /** False until the post-signup setup sheet has been submitted. */
+  isProfileComplete: boolean;
+  favoriteGenres: string[];
+};
+
+export type ProfileSetupInput = {
+  displayName: string;
+  photoURL: string | null;
+  favoriteGenres: string[];
 };
 
 type AuthContextValue = {
@@ -33,6 +42,7 @@ type AuthContextValue = {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  completeProfile: (input: ProfileSetupInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -71,6 +81,10 @@ async function toAccount(user: User): Promise<Account> {
     uid: user.uid,
     email: user.email ?? '',
   };
+  const authDerived = {
+    name: user.displayName?.trim() || fallbackNameFromEmail(base.email),
+    photoURL: user.photoURL,
+  };
 
   try {
     const profile = await fetchUserProfile(user.uid);
@@ -79,18 +93,20 @@ async function toAccount(user: User): Promise<Account> {
         ...base,
         name: profile.displayName.length >= 1 ? profile.displayName : fallbackNameFromEmail(base.email),
         photoURL: profile.photoURL,
+        isProfileComplete: profile.isProfileComplete,
+        favoriteGenres: profile.favoriteGenres,
       };
     }
+    // No profile document means setup was never finished — the setup sheet
+    // must run (its submit merge-creates the document if it is missing).
+    return { ...base, ...authDerived, isProfileComplete: false, favoriteGenres: [] };
   } catch {
-    // A profile read failure must not break the session; fall through to
-    // the Auth-derived name. The session itself is still valid.
+    // A profile read failure must not break the session; fall back to the
+    // Auth-derived name. The flag is unknown here, so assume the profile is
+    // finished rather than nagging from an unreadable state — the session
+    // itself is still valid.
+    return { ...base, ...authDerived, isProfileComplete: true, favoriteGenres: [] };
   }
-
-  return {
-    ...base,
-    name: user.displayName?.trim() || fallbackNameFromEmail(base.email),
-    photoURL: user.photoURL,
-  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -126,6 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: user.email ?? '',
               name: user.displayName?.trim() || fallbackNameFromEmail(user.email ?? ''),
               photoURL: user.photoURL,
+              // Unknown profile state: never gate the session on it.
+              isProfileComplete: true,
+              favoriteGenres: [],
             });
           }
         })
@@ -197,9 +216,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /**
+   * Persists the post-signup setup sheet and flips the local account in the
+   * same step. Updating local state instead of waiting for a profile refetch
+   * is what keeps the sheet from reopening if a later read races the write.
+   */
+  const completeProfile = useCallback(
+    async (input: ProfileSetupInput) => {
+      if (!account) {
+        throw new Error('You must be signed in to complete your profile.');
+      }
+      try {
+        await completeUserProfile({
+          uid: account.uid,
+          displayName: input.displayName,
+          photoURL: input.photoURL,
+          favoriteGenres: input.favoriteGenres,
+        });
+      } catch (error) {
+        throw new Error(describeAuthFailure(error));
+      }
+
+      setAccount((previous) =>
+        previous
+          ? {
+              ...previous,
+              name: input.displayName.trim(),
+              photoURL: input.photoURL,
+              favoriteGenres: input.favoriteGenres,
+              isProfileComplete: true,
+            }
+          : previous,
+      );
+    },
+    [account],
+  );
+
   const value = useMemo(
-    () => ({ account, isLoading, signIn, signUp, sendPasswordReset, signOut }),
-    [account, isLoading, signIn, signUp, sendPasswordReset, signOut],
+    () => ({ account, isLoading, signIn, signUp, sendPasswordReset, signOut, completeProfile }),
+    [account, isLoading, signIn, signUp, sendPasswordReset, signOut, completeProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

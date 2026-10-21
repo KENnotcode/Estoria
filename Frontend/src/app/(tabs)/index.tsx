@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
@@ -12,6 +12,7 @@ import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { UpcomingRail } from '../../../components/UpcomingRail';
 import { DiscoveryCard } from '../../../components/DiscoveryCard';
 import { CategoryRow } from '../../../components/CategoryRow';
+import { CompleteProfileModal } from '../../../components/CompleteProfileModal';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { border, radius, spacing, surface, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
@@ -43,6 +44,9 @@ export default function HomeScreen() {
   const { account } = useAuth();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
+  // Session-level opt-out so "Maybe later" does not re-open the sheet on
+  // every visit; the Firestore isProfileComplete flag remains the permanent gate.
+  const [profileSetupDismissed, setProfileSetupDismissed] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
 
   useEffect(() => {
@@ -104,9 +108,10 @@ export default function HomeScreen() {
   const error = popularError || trendingError || topRatedError || upcomingError;
   const { isOnline } = useNetworkStatus();
 
+  let content: ReactNode;
   if (loading) {
     const heroWidth = screenWidth - spacing.screen * 2;
-    return (
+    content = (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 112 }}
@@ -136,10 +141,8 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     );
-  }
-
-  if (error || carouselMovies.length === 0) {
-    return (
+  } else if (error || carouselMovies.length === 0) {
+    content = (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <NetworkStatusBanner isOnline={isOnline} />
         <EmptyState
@@ -156,9 +159,8 @@ export default function HomeScreen() {
         />
       </View>
     );
-  }
-
-  return (
+  } else {
+    content = (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <NetworkStatusBanner isOnline={isOnline} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 112 }}>
@@ -224,6 +226,16 @@ export default function HomeScreen() {
           <DiscoveryCard posterImage={require('../../../assets/images/poster-meridian.jpg')} onPress={() => router.push('/search')} />
         </View>
       </ScrollView>
+    </View>
+    );
+  }
+
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      {content}
+      {account && !account.isProfileComplete && !profileSetupDismissed ? (
+        <CompleteProfileModal onDismiss={() => setProfileSetupDismissed(true)} />
+      ) : null}
     </View>
   );
 }

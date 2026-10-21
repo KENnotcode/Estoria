@@ -19,7 +19,7 @@ export function DiscoveryCard({ posterImage, onPress }: DiscoveryCardProps) {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card }]}>
-      <Image source={posterImage} resizeMode="cover" style={styles.image} />
+      <Image source={posterImage} contentFit="cover" style={styles.image} />
       <View style={styles.copy}>
         <Text style={[styles.kicker, { color: colors.primary }]}>WEEKLY DISCOVERY</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>Stories worth staying up for.</Text>
