@@ -13,7 +13,7 @@ type CategoryRowProps = {
 
 /**
  * One "Browse by category" row: a MovieSection whose "See all" action
- * opens Search pre-filtered by the row's genre.
+ * opens Search with the row's genre selected.
  */
 export function CategoryRow({ label, genre, movies }: CategoryRowProps) {
   const router = useRouter();
@@ -22,7 +22,7 @@ export function CategoryRow({ label, genre, movies }: CategoryRowProps) {
     <MovieSection
       title={label}
       movies={movies}
-      onSeeAll={() => router.push({ pathname: '/search', params: { genre } })}
+      onSeeAll={() => router.push({ pathname: '/search', params: { genres: genre } })}
     />
   );
 }
