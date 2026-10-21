@@ -9,7 +9,7 @@ import { SearchBar } from '../../../components/SearchBar';
 import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { poster, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
-import { useGenres, useMoviesByGenre, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
+import { useCategoryMovies, useGenres, usePopularMovies, useSearchMovies } from '../../../hooks/useMovies';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
@@ -18,28 +18,51 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
-  const { genre } = useLocalSearchParams<{ genre?: string }>();
+  const { genre, genres: genresParam } = useLocalSearchParams<{ genre?: string; genres?: string }>();
   const [query, setQuery] = useState('');
-  const selectedGenre = genre ?? 'All';
+  const selectedGenres = genresParam
+    ? genresParam.split(',').map((value) => value.trim()).filter(Boolean)
+    : genre && genre !== 'All'
+      ? [genre]
+      : [];
+  const selectedGenre = selectedGenres[0] ?? 'All';
 
   const { data: popular = [], isLoading: popularLoading, refetch: refetchPopular } = usePopularMovies();
   const { data: searchResults = [], isLoading: searchLoading, error: searchError, refetch } = useSearchMovies(query);
   const { data: genres = [] } = useGenres();
-  const { data: genreMovies = [], isLoading: genreLoading, error: genreError, refetch: refetchGenre } = useMoviesByGenre(selectedGenre);
+  const selectedGenreResults = useCategoryMovies(
+    selectedGenres.map((selected) => ({ label: selected, genre: selected })),
+  );
 
-  const baseResults = query.trim() ? searchResults : selectedGenre !== 'All' ? genreMovies : popular;
+  const selectedMovies = Array.from(
+    new Map(
+      selectedGenreResults
+        .flatMap((result) => result.data ?? [])
+        .map((movie) => [movie.id, movie]),
+    ).values(),
+  );
+  const baseResults = query.trim()
+    ? searchResults
+    : selectedGenres.length > 0
+      ? selectedMovies
+      : popular;
   const filteredMovies = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return baseResults.filter((movie) => {
-      const matchesGenre = selectedGenre === 'All' || movie.genres.includes(selectedGenre);
+      const matchesGenre = selectedGenres.length === 0
+        || movie.genres.some((movieGenre) => selectedGenres.includes(movieGenre));
       const matchesQuery = !normalizedQuery || [movie.title, movie.description, ...movie.genres].join(' ').toLowerCase().includes(normalizedQuery);
       return matchesGenre && matchesQuery;
     });
-  }, [query, selectedGenre, baseResults]);
+  }, [query, selectedGenres, baseResults]);
 
   const genreList = ['All', ...genres];
-  const loading = query.trim() ? searchLoading : selectedGenre !== 'All' ? genreLoading : popularLoading;
-  const error = genreError || searchError;
+  const loading = query.trim()
+    ? searchLoading
+    : selectedGenres.length > 0
+      ? selectedGenreResults.some((result) => result.isLoading)
+      : popularLoading;
+  const error = searchError || selectedGenreResults.find((result) => result.error)?.error;
   const { isOnline } = useNetworkStatus();
 
   const posterWidth =
@@ -56,7 +79,7 @@ export default function SearchScreen() {
           actionLoading={loading}
           onAction={() => {
             if (query.trim()) refetch();
-            else if (selectedGenre !== 'All') refetchGenre();
+            else if (selectedGenres.length > 0) selectedGenreResults.forEach((result) => void result.refetch());
             else refetchPopular();
           }}
           icon="alert-triangle"
@@ -87,11 +110,23 @@ export default function SearchScreen() {
             <SearchBar value={query} onChangeText={setQuery} />
             <GenreFilter
               genres={genreList}
-              selectedGenre={selectedGenre}
-              onSelect={(value) => router.setParams({ genre: value })}
+              selectedGenres={selectedGenres}
+              onSelect={(value) => {
+                if (value === 'All') {
+                  router.setParams({ genre: 'All', genres: undefined });
+                  return;
+                }
+                const nextGenres = selectedGenres.includes(value)
+                  ? selectedGenres.filter((selected) => selected !== value)
+                  : [...selectedGenres, value];
+                router.setParams({
+                  genre: undefined,
+                  genres: nextGenres.length > 0 ? nextGenres.join(',') : undefined,
+                });
+              }}
             />
             <View style={styles.resultsHeader}>
-              <Text style={[styles.resultsTitle, { color: colors.foreground }]}>{query.trim() || selectedGenre !== 'All' ? 'Your results' : 'Popular picks'}</Text>
+              <Text style={[styles.resultsTitle, { color: colors.foreground }]}>{query.trim() || selectedGenres.length > 0 ? 'Your results' : 'Popular picks'}</Text>
               <Text style={[styles.count, { color: colors.mutedForeground }]}>{filteredMovies.length} films</Text>
             </View>
           </View>
@@ -100,7 +135,7 @@ export default function SearchScreen() {
           loading ? (
             <MovieGridSkeleton itemWidth={posterWidth} count={6} gutter={poster.gridGutter} />
           ) : (
-            <EmptyState title="No movies found" message="Try another title or explore a different genre." actionLabel="Clear filters" onAction={() => { setQuery(''); router.setParams({ genre: 'All' }); }} icon="search" />
+            <EmptyState title="No movies found" message="Try another title or explore a different genre." actionLabel="Clear filters" onAction={() => { setQuery(''); router.setParams({ genre: 'All', genres: undefined }); }} icon="search" />
           )
         }
       />

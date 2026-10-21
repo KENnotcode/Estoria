@@ -5,12 +5,13 @@ import { useColors } from '@/hooks/useColors';
 
 type GenreFilterProps = {
   genres: string[];
-  selectedGenre: string;
+  selectedGenre?: string;
+  selectedGenres?: string[];
   onSelect: (genre: string) => void;
 };
 
-/** Horizontally scrollable single-select filter chips. */
-export function GenreFilter({ genres, selectedGenre, onSelect }: GenreFilterProps) {
+/** Horizontally scrollable genre filter chips. */
+export function GenreFilter({ genres, selectedGenre, selectedGenres, onSelect }: GenreFilterProps) {
   const colors = useColors();
 
   return (
@@ -20,7 +21,7 @@ export function GenreFilter({ genres, selectedGenre, onSelect }: GenreFilterProp
       contentContainerStyle={styles.list}
     >
       {genres.map((genre) => {
-        const isSelected = genre === selectedGenre;
+        const isSelected = selectedGenres ? selectedGenres.includes(genre) : genre === selectedGenre;
 
         return (
           <AppPressable

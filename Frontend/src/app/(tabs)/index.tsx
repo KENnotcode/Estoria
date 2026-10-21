@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState, useEffect, type ReactNode } from 'react';
 import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { HeroCarousel } from '../../../components/HeroCarousel';
 import { MovieSection } from '../../../components/MovieSection';
@@ -9,11 +10,10 @@ import { MovieRailSkeleton, Skeleton } from '../../../components/Skeleton';
 import { SearchBar } from '../../../components/SearchBar';
 import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { UpcomingRail } from '../../../components/UpcomingRail';
-import { DiscoveryCard } from '../../../components/DiscoveryCard';
 import { CategoryRow } from '../../../components/CategoryRow';
 import { CompleteProfileModal } from '../../../components/CompleteProfileModal';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
-import { radius, spacing, type } from '../../../constants/theme';
+import { border, radius, spacing, surface, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useCategoryMovies, usePopularMovies, useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from '../../../hooks/useMovies';
 import { isUpcomingRelease } from '../../../utils/format';
@@ -103,6 +103,29 @@ export default function HomeScreen() {
     movies: (categoryResults[index]?.data ?? []).slice(0, 6),
   }));
 
+  const preferredGenres = account?.favoriteGenres ?? [];
+  const preferenceCategories = preferredGenres.map((genre) => ({
+    label: genre,
+    genre,
+  }));
+  const preferenceResults = useCategoryMovies(preferenceCategories);
+  const recommendedMovies = preferenceCategories.length === 0
+    ? topRatedMovies
+    : Array.from(
+        new Map(
+          preferenceResults
+            .flatMap((result) => result.data ?? [])
+            .filter((movie) =>
+              movie.genres.some((movieGenre) =>
+                preferredGenres.some(
+                  (preferredGenre) => preferredGenre.toLowerCase() === movieGenre.toLowerCase(),
+                ),
+              ),
+            )
+            .map((movie) => [movie.id, movie]),
+        ).values(),
+      ).slice(0, 10);
+
   const loading = popularLoading || trendingLoading || topRatedLoading || upcomingLoading;
   const error = popularError || trendingError || topRatedError || upcomingError;
   const { isOnline } = useNetworkStatus();
@@ -124,6 +147,7 @@ export default function HomeScreen() {
               <Skeleton width={64} height={16} borderRadius={6} />
             </View>
           </View>
+          <Skeleton width={38} height={38} borderRadius={19} />
         </View>
 
         <View style={styles.content}>
@@ -165,18 +189,34 @@ export default function HomeScreen() {
 
         <View style={styles.header}>
           <View style={styles.brandRow}>
-            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-              {account?.photoURL ? (
-                <Image source={{ uri: account.photoURL }} style={styles.logoImage} />
-              ) : (
-                <Text style={styles.logoText}>{avatarInitial}</Text>
-              )}
+            <View style={[styles.logo]}>
+              <Image source={require('../../../assets/images/android-icon-foreground.png')} style={styles.logoImage} />
             </View>
             <View>
               <Text style={[styles.kicker, { color: colors.mutedForeground }]}>GOOD {timeOfDay.toUpperCase()}</Text>
               <Text style={[styles.brand, { color: colors.foreground }]}>{displayName}</Text>
             </View>
           </View>
+          <AppPressable
+            testID="home-profile"
+            accessibilityLabel="Open profile"
+            onPress={() => router.push('/profile')}
+            accentColor={colors.primary}
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: surface.raised,
+                borderColor: border.hairline,
+                borderWidth: StyleSheet.hairlineWidth,
+              },
+            ]}
+          >
+            {account?.photoURL ? (
+              <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
+            ) : (
+              <Text style={[styles.avatarText, { color: colors.primary }]}>{avatarInitial}</Text>
+            )}
+          </AppPressable>
         </View>
 
         <View style={styles.content}>
@@ -196,8 +236,19 @@ export default function HomeScreen() {
           </View>
 
           <MovieSection title="Trending now" movies={trendingMovies} onSeeAll={() => router.push('/search')} />
+            
           <MovieSection title="Latest releases" movies={latest} onSeeAll={() => router.push('/search')} />
+
           <MovieSection title="Top rated" movies={topRatedMovies} onSeeAll={() => router.push('/search')} />
+
+          <MovieSection
+            title="Recommended"
+            movies={recommendedMovies}
+            onSeeAll={() => router.push({
+              pathname: '/search',
+              params: preferredGenres.length > 0 ? { genres: preferredGenres.join(',') } : undefined,
+            })}
+          />
 
           <View style={styles.browseHeader}>
             <Text style={[styles.browseTitle, { color: colors.foreground }]}>Browse movies by category</Text>
@@ -213,8 +264,6 @@ export default function HomeScreen() {
               onPress={openMovie}
             />
           ) : null}
-
-          <DiscoveryCard posterImage={require('../../../assets/images/poster-meridian.jpg')} onPress={() => router.push('/search')} />
         </View>
       </ScrollView>
     </View>
@@ -233,16 +282,18 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingHorizontal: spacing.screen, marginBottom: spacing.lg },
+  header: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   content: { paddingHorizontal: spacing.screen },
-  skeletonHeader: { paddingHorizontal: spacing.screen, marginBottom: spacing.lg },
+  skeletonHeader: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   skeletonBrandCopy: { gap: 6, marginLeft: spacing.sm + 2 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
-  logo: { width: 34, height: 34, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 54, height: 54, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
   logoImage: { width: '100%', height: '100%', borderRadius: radius.md - 1 },
-  logoText: { color: '#FFFFFF', fontSize: 18, fontFamily: type.hero.fontFamily },
   kicker: { ...type.kicker },
   brand: { fontSize: 21, lineHeight: 26, letterSpacing: -0.5, fontFamily: type.pageTitle.fontFamily },
+  avatar: { width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
+  avatarText: { fontSize: 15, fontFamily: type.cardTitle.fontFamily },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: spacing.xs + 2, marginBottom: spacing.lg },
   dotIndicator: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#3A3D45' },
   rowContent: { paddingRight: spacing.sm },
