@@ -25,7 +25,6 @@ export default function SearchScreen() {
     : genre && genre !== 'All'
       ? [genre]
       : [];
-  const selectedGenre = selectedGenres[0] ?? 'All';
 
   const { data: popular = [], isLoading: popularLoading, refetch: refetchPopular } = usePopularMovies();
   const { data: searchResults = [], isLoading: searchLoading, error: searchError, refetch } = useSearchMovies(query);

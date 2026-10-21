@@ -21,7 +21,11 @@ export function GenreFilter({ genres, selectedGenre, selectedGenres, onSelect }:
       contentContainerStyle={styles.list}
     >
       {genres.map((genre) => {
-        const isSelected = selectedGenres ? selectedGenres.includes(genre) : genre === selectedGenre;
+        const isSelected = selectedGenres
+          ? genre === 'All'
+            ? selectedGenres.length === 0
+            : selectedGenres.includes(genre)
+          : genre === selectedGenre;
 
         return (
           <AppPressable
