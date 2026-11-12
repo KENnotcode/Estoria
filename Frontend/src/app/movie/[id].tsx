@@ -146,7 +146,7 @@ export default function MovieDetailsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   backdrop: { height: 392 },
-  backdropImage: { ...StyleSheet.absoluteFillObject },
+  backdropImage: { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 },
   backdropGradient: { flex: 1 },
   topBar: { paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: {

@@ -3,12 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
-  type ScrollView as ScrollViewType,
+  type ScrollViewInstance,
 } from 'react-native';
 import { AppPressable } from '@/components/AppPressable';
 import { radius, spacing, type } from '@/constants/theme';
@@ -18,20 +19,15 @@ import type { AppMovie } from '@/types/movie';
 type HeroCarouselProps = {
   movies: AppMovie[];
   onSelect: (movie: AppMovie) => void;
-  /** Notified with the real (non-cloned) active index, e.g. to drive dots. */
   onActiveIndexChange?: (index: number) => void;
 };
 
-/**
- * Paged hero carousel. The first and last slides are cloned so the wrap-around
- * transition stays seamless, and the visible index is tracked separately from
- * the raw scroll offset.
- */
 export function HeroCarousel({ movies, onSelect, onActiveIndexChange }: HeroCarouselProps) {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const carouselRef = useRef<ScrollViewType>(null);
+  const carouselRef = useRef<ScrollViewInstance>(null);
   const hasScrolledToStart = useRef(false);
+  const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const itemWidth = screenWidth - spacing.screen * 2;
@@ -44,6 +40,10 @@ export function HeroCarousel({ movies, onSelect, onActiveIndexChange }: HeroCaro
   /** Updates the active index and emits it to any listener (dots). */
   const updateActive = useCallback(
     (index: number) => {
+      if (activeIndexRef.current === index) {
+        return;
+      }
+      activeIndexRef.current = index;
       setActiveIndex(index);
       onActiveIndexChange?.(index);
     },
@@ -92,6 +92,37 @@ export function HeroCarousel({ movies, onSelect, onActiveIndexChange }: HeroCaro
     [canLoop, itemWidth, movies.length, scrollTo, settleOnPage],
   );
 
+  const handleScroll = useCallback(
+    (offsetX: number) => {
+      if (itemWidth <= 0) return;
+
+      const rawPage = offsetX / itemWidth;
+      const currentPage = activeIndexRef.current + (canLoop ? 1 : 0);
+      const delta = rawPage - currentPage;
+
+      let page = Math.round(rawPage);
+      if (delta > 0.35) {
+        page = Math.ceil(rawPage);
+      } else if (delta < -0.35) {
+        page = Math.floor(rawPage);
+      }
+
+      const nextIndex = !canLoop
+        ? Math.max(0, Math.min(movies.length - 1, page))
+        : page <= 0
+          ? movies.length - 1
+          : page >= movies.length + 1
+            ? 0
+            : page - 1;
+
+      if (nextIndex !== activeIndexRef.current) {
+        updateActive(nextIndex);
+      }
+    },
+    [canLoop, itemWidth, movies.length, updateActive],
+  );
+
+
   const handleLayout = useCallback(() => {
     if (!hasScrolledToStart.current && canLoop) {
       scrollTo(1, false);
@@ -105,34 +136,39 @@ export function HeroCarousel({ movies, onSelect, onActiveIndexChange }: HeroCaro
         ref={carouselRef}
         horizontal
         pagingEnabled
+        decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
         onLayout={handleLayout}
+        onScroll={(event) => handleScroll(event.nativeEvent.contentOffset.x)}
         onMomentumScrollEnd={(event) =>
           handleMomentumEnd(event.nativeEvent.contentOffset.x)
         }
       >
         {slides.map((movie, index) => (
-          <View
+          <Pressable
             key={`${movie.id}-${index}`}
+            onPress={() => onSelect(movie)}
             style={[styles.slide, { width: itemWidth }]}
           >
-            <Image source={movie.backdrop} resizeMode="cover" style={[StyleSheet.absoluteFillObject, styles.image]} />
-          </View>
+            <Image source={movie.backdrop} resizeMode="cover" style={styles.image} />
+          </Pressable>
         ))}
       </ScrollView>
 
       <LinearGradient
+        pointerEvents="none"
         colors={['transparent', 'rgba(12, 13, 16, 0.4)', 'rgba(12, 13, 16, 0.82)']}
         locations={[0, 0.55, 1]}
         style={styles.gradient}
       >
-        <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+        <View pointerEvents="none" style={[styles.badge, { backgroundColor: colors.primary }]}>
           <Text style={styles.badgeLabel}>FEATURED</Text>
         </View>
-        <Text numberOfLines={1} style={[styles.title, { color: colors.foreground }]}>
+        <Text pointerEvents="none" numberOfLines={1} style={[styles.title, { color: colors.foreground }]}>
           {activeMovie?.title}
         </Text>
-        <View style={styles.metaRow}>
+        <View pointerEvents="none" style={styles.metaRow}>
           <Text style={[styles.meta, styles.numeric, { color: colors.foreground }]}>{activeMovie?.releaseYear}</Text>
           <Text style={[styles.dot, { color: colors.mutedForeground }]}>·</Text>
           <Text style={[styles.meta, { color: colors.foreground }]}>{activeMovie?.genres[0]}</Text>
@@ -174,6 +210,8 @@ const styles = StyleSheet.create({
     height: 302,
   },
   image: {
+    width: '100%',
+    height: '100%',
     borderRadius: radius.xl,
   },
   gradient: {
@@ -185,7 +223,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    bottom: 115,
+    bottom: 100,
     left: 12,
     alignSelf: 'flex-start',
     paddingHorizontal: 9,
@@ -201,11 +239,11 @@ const styles = StyleSheet.create({
     left: spacing.screen - 8,
     right: spacing.screen - 8,
     position: 'absolute',
-    bottom: 72,
+    bottom: 45,
   },
   metaRow: {
     position: 'absolute',
-    bottom: 55,
+    bottom: 25,
     left: spacing.screen - 8,
     flexDirection: 'row',
     alignItems: 'center',
