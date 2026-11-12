@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, useRouter } from 'expo-router';
+import { Link, useCanGoBack, useRouter } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
   Image,
@@ -63,7 +63,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [resetting, setResetting] = useState(false);
 
   const backdropMovie = trending.length > 0 ? trending[dailyIndex(trending.length)] : undefined;
-  const canGoBack = router.canGoBack();
+  const canGoBack = useCanGoBack();
 
   const fieldError = (field: FieldName, next: FieldValues): string | undefined => {
     if (field === 'name') {

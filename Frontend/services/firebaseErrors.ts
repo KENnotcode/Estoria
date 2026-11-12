@@ -1,5 +1,3 @@
-import { FunctionsError, type FunctionsErrorCode } from 'firebase/functions';
-
 /**
  * Maps Firebase Auth / Firestore / Functions error codes onto messages that
  * are safe and useful to show in the UI. Raw Firebase errors carry
@@ -19,7 +17,7 @@ export function describeFirebaseError(error: unknown): string {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'That email and password do not match.';
+      return 'You have entered an incorrect email or password. Please try again.';
     case 'auth/email-already-in-use':
       return 'An account with this email already exists. Sign in instead.';
     case 'auth/weak-password':
@@ -77,9 +75,6 @@ export function describeFirebaseError(error: unknown): string {
 }
 
 function extractErrorCode(error: unknown): string | null {
-  if (error instanceof FunctionsError) {
-    return error.code as FunctionsErrorCode;
-  }
   if (typeof error === 'object' && error !== null && 'code' in error) {
     const { code } = error as { code?: unknown };
     return typeof code === 'string' ? code : null;
@@ -89,9 +84,13 @@ function extractErrorCode(error: unknown): string | null {
 
 /** Server sends retryAfterMs as error details; prefer it when present. */
 function rateLimitMessage(error: unknown): string {
-  if (error instanceof FunctionsError) {
-    const details = error.details as { retryAfterMs?: unknown } | undefined;
-    const retryAfterMs = details?.retryAfterMs;
+  if (typeof error !== 'object' || error === null || !('details' in error)) {
+    return 'You are doing that too quickly. Try again in a moment.';
+  }
+
+  const details = (error as { details?: unknown }).details;
+  if (typeof details === 'object' && details !== null && 'retryAfterMs' in details) {
+    const retryAfterMs = (details as { retryAfterMs?: unknown }).retryAfterMs;
     if (typeof retryAfterMs === 'number' && retryAfterMs > 0) {
       const seconds = Math.ceil(retryAfterMs / 1000);
       return `You are doing that too quickly. Try again in ${seconds}s.`;
