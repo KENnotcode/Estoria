@@ -16,6 +16,7 @@ import { border, radius, spacing, surface, type } from '../../../constants/theme
 import { useColors } from '../../../hooks/useColors';
 import { useMovieDetails, useRecommendations } from '../../../hooks/useMovies';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { useWatchHistory } from '../../../context/WatchHistoryContext';
 import type { MovieVideo } from '../../../services/trailers';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -62,6 +63,7 @@ export default function MovieDetailsScreen() {
   const { data: recommendations = [] } = useRecommendations(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isOnline } = useNetworkStatus();
+  const { recordMovie } = useWatchHistory();
   const [trailerVisible, setTrailerVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<MovieVideo | null>(null);
 
@@ -94,6 +96,13 @@ export default function MovieDetailsScreen() {
     }
   };
 
+  const recordMovieWatch = () => {
+    void recordMovie(movie.id).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Could not update watch history.';
+      Alert.alert('Unable to update history', message);
+    });
+  };
+
   const releaseDate = movie.releaseDate || routeReleaseDate || '';
   const releaseEta = formatReleaseDate(releaseDate);
   const isUpcoming = upcoming === 'true' || (!!releaseDate && releaseDate >= TODAY);
@@ -122,10 +131,11 @@ export default function MovieDetailsScreen() {
           <View style={styles.actions}>
             <View style={styles.primaryActionSlot}>
               <AppPressable
-                accessibilityLabel="Watch Now!!"
+                accessibilityLabel="Watch Now!!!"
                 onPress={() => {
                   setSelectedVideo(null);
                   setTrailerVisible(true);
+                  recordMovieWatch();
                 }}
                 accentColor={colors.primary}
                 style={[styles.primaryAction, { backgroundColor: colors.foreground }]}
@@ -154,6 +164,7 @@ export default function MovieDetailsScreen() {
             onSelect={(video) => {
               setSelectedVideo(video);
               setTrailerVisible(true);
+              recordMovieWatch();
             }}
           />
           {recommendations.length ? <><Text style={[styles.recommendationTitle, { color: colors.foreground }]}>You may also like</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recommendationRow}>{recommendations.map((item) => <MovieCard key={item.id} movie={item} onPress={() => router.push({ pathname: '/movie/[id]', params: { id: item.id } })} />)}</ScrollView></> : null}

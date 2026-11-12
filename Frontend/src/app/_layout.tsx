@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { FavoritesProvider } from '../../context/FavoritesContext';
+import { WatchHistoryProvider } from '../../context/WatchHistoryContext';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
 import { NetworkProvider } from '../../context/NetworkContext';
 import {
@@ -73,15 +74,17 @@ function AuthAwareSlot() {
 
   return (
     <FavoritesProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <StatusBar style="light" />
-          <ErrorBoundary>
-            <AuthGuard />
-            <Slot />
-          </ErrorBoundary>
-        </KeyboardProvider>
-      </GestureHandlerRootView>
+      <WatchHistoryProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <KeyboardProvider>
+            <StatusBar style="light" />
+            <ErrorBoundary>
+              <AuthGuard />
+              <Slot />
+            </ErrorBoundary>
+          </KeyboardProvider>
+        </GestureHandlerRootView>
+      </WatchHistoryProvider>
     </FavoritesProvider>
   );
 }

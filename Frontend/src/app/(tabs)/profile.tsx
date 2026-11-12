@@ -7,6 +7,7 @@ import { radius, spacing, type } from '../../../constants/theme';
 import { useColors } from '../../../hooks/useColors';
 import { useFavorites } from '../../../context/FavoritesContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useWatchHistory } from '../../../context/WatchHistoryContext';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { PreferencesModal } from '@/components/PreferencesModal';
 
@@ -16,11 +17,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { favoriteIds } = useFavorites();
   const { account, signOut } = useAuth();
+  const { entries: watchHistory } = useWatchHistory();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const rows = [
     { icon: 'bookmark', label: 'Saved movies', value: `${favoriteIds.length}`, action: () => router.push('/favorites') },
-    { icon: 'clock', label: 'Watch history', value: '0', action: () => Alert.alert('Watch history', 'Your watch history will appear here after you finish a film.') },
+    { icon: 'clock', label: 'Watch history', value: `${watchHistory.length}`, action: () => router.push('/history') },
     { icon: 'settings', label: 'Preferences', value: '', action: () => (account ? setPreferencesOpen(true) : router.push('/login')) },
     { icon: 'info', label: 'About Estoria', value: '', action: () => Alert.alert('Estoria', 'A place to find the stories you want to remember.') },
   ] as const;

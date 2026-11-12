@@ -15,7 +15,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import YoutubePlayer, { type YoutubeIframeRef } from 'react-native-youtube-iframe';
+import YoutubePlayer, { PLAYER_STATES, type YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { AppPressable } from '@/components/AppPressable';
 import { Skeleton } from '@/components/Skeleton';
 import { border, radius, spacing, surface, type } from '@/constants/theme';
@@ -95,7 +95,7 @@ function TrailerModalContent({
   const stageHeight = landscapeStageSize.height || safeHeight;
   const idealPlayerWidth = Math.min(stageWidth, stageHeight * ratio);
   const maxPlayerWidth = Math.min(idealPlayerWidth, stageWidth, stageHeight * ratio);
-  const playerWidth = Math.max(MIN_PLAYER_WIDTH, Math.min(maxPlayerWidth, stageWidth - 168));
+  const playerWidth = Math.max(MIN_PLAYER_WIDTH, Math.min(maxPlayerWidth, stageWidth - 96));
   const playerHeight = playerWidth * 9 / 16;
   const portraitPlayerHeight = width / ratio;
   const loading = !videoKey && status === 'loading';
@@ -118,6 +118,14 @@ function TrailerModalContent({
     if (key) setPlayerErrorKey(key);
     lockOrientation(ScreenOrientation.OrientationLock.PORTRAIT_UP);
   }, [key, lockOrientation]);
+
+  const handlePlayerState = useCallback((state: PLAYER_STATES) => {
+    if (state === PLAYER_STATES.PLAYING) {
+      setPlay(true);
+    } else if (state === PLAYER_STATES.PAUSED || state === PLAYER_STATES.ENDED) {
+      setPlay(false);
+    }
+  }, []);
 
   const updateProgress = useCallback(async () => {
     const player = playerRef.current;
@@ -187,6 +195,7 @@ function TrailerModalContent({
       play={play}
       videoId={key ?? ''}
       onReady={() => setPlay(true)}
+      onChangeState={handlePlayerState}
       onError={handlePlayerError}
       initialPlayerParams={VIDEO_PLAYER_PARAMS}
       webViewProps={{ allowsInlineMediaPlayback: true, mediaPlaybackRequiresUserAction: false }}
@@ -231,16 +240,6 @@ function TrailerModalContent({
                   {key ? player(playerHeight, playerWidth) : null}
                 </View>
               )}
-              {!playerError && key ? (
-                <VideoControls
-                  landscape
-                  playing={play}
-                  progress={progressRatio}
-                  onToggle={() => setPlay((current) => !current)}
-                  onSeek={handleSeek}
-                  onTrackLayout={setProgressWidth}
-                />
-              ) : null}
               <Pressable
                 accessibilityLabel="Close video"
                 onPress={onClose}
@@ -313,7 +312,6 @@ function TrailerModalContent({
 }
 
 type VideoControlsProps = {
-  landscape?: boolean;
   playing: boolean;
   progress: number;
   onToggle: () => void;
@@ -322,7 +320,6 @@ type VideoControlsProps = {
 };
 
 function VideoControls({
-  landscape = false,
   playing,
   progress,
   onToggle,
@@ -332,16 +329,14 @@ function VideoControls({
   const colors = useColors();
 
   return (
-    <View style={[styles.controls, landscape ? styles.landscapeControls : null]}>
-      <AppPressable
+    <View style={styles.controls}>
+      <Pressable
         accessibilityLabel={playing ? 'Pause video' : 'Play video'}
         onPress={onToggle}
-        accentColor={colors.primary}
-        showFocusRing={false}
         style={styles.playButton}
       >
         <Feather name={playing ? 'pause' : 'play'} size={16} color={colors.foreground} fill={colors.foreground} />
-      </AppPressable>
+      </Pressable>
       <Pressable
         accessibilityLabel="Seek video"
         accessibilityRole="adjustable"
@@ -362,7 +357,6 @@ const styles = StyleSheet.create({
   landscapePlayer: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
   landscapeClose: { position: 'absolute', top: 8, right: 6, width: 36, height: 36, borderRadius: radius.pill, backgroundColor: surface.raised, alignItems: 'center', justifyContent: 'center' },
   controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  landscapeControls: { position: 'absolute', top: '50%', right: 6, width: 72, paddingHorizontal: 0, paddingTop: 0, flexDirection: 'column', gap: spacing.sm, transform: [{ translateY: -30 }] },
   playButton: { width: 36, height: 36, borderRadius: radius.pill, backgroundColor: surface.raised, alignItems: 'center', justifyContent: 'center' },
   progressTrack: { width: '100%', height: 4, borderRadius: radius.pill, backgroundColor: border.subtle, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill },
