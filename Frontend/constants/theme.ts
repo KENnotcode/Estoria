@@ -11,15 +11,15 @@ import type { FontVariant } from 'react-native';
 export const palette = {
   background: '#0C0D10',
   foreground: '#F7F4EF',
-  card: '#17191F',
+  card: 'rgba(23, 25, 31, 0.72)',
   primary: '#E14D4D',
   primaryForeground: '#FFFFFF',
-  secondary: '#22252C',
-  muted: '#1C1F26',
+  secondary: 'rgba(34, 37, 44, 0.72)',
+  muted: 'rgba(28, 31, 38, 0.72)',
   mutedForeground: '#9397A3',
-  border: '#292C35',
+  border: 'rgba(225, 77, 77, 0.24)',
   tint: '#E14D4D',
-  /** Translucent surfaces layered on top of artwork. */
+  /** Translucent surfaces layered over the dark red glass backdrop. */
   scrim: 'rgba(12, 13, 16, 0.78)',
   overlay: 'rgba(12, 13, 16, 0.6)',
 } as const;
@@ -110,11 +110,11 @@ export const radius = {
 export const surface = {
   /** Page background. */
   base: palette.background,
-  /** Grouped content blocks. */
+  /** Grouped translucent content blocks. */
   card: palette.card,
-  /** Interactive bars, selected chips, icon wells. */
+  /** Interactive translucent bars, selected chips, icon wells. */
   raised: palette.secondary,
-  /** Recessed fills (skeletons, tracks). */
+  /** Recessed translucent fills (skeletons, tracks). */
   sunken: palette.muted,
 } as const;
 
@@ -123,12 +123,12 @@ export const surface = {
  * only when a boundary must read as interactive.
  */
 export const border = {
-  /** 1px default divider / card edge. */
+  /** Glass edge that catches the red accent without becoming opaque. */
   hairline: palette.border,
-  /** Barely-there fill separators. */
-  subtle: '#20232B',
+  /** Barely-there glass separators. */
+  subtle: 'rgba(225, 77, 77, 0.12)',
   /** Focus rings, selected edges. */
-  strong: '#3A3F4D',
+  strong: 'rgba(225, 77, 77, 0.52)',
 } as const;
 
 /**

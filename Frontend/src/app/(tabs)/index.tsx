@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect, type ReactNode } from 'react';
 import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import LottieView from 'lottie-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { HeroCarousel } from '../../../components/HeroCarousel';
@@ -188,44 +188,49 @@ export default function HomeScreen() {
       <NetworkStatusBanner isOnline={isOnline} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 112 }}>
 
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <View style={[styles.logo]}>
-              <Image source={require('../../../assets/images/android-icon-foreground.png')} style={styles.logoImage} />
+        <LinearGradient
+          colors={['rgba(225, 77, 77, 0.18)', 'rgba(23, 25, 31, 0.72)', 'rgba(12, 13, 16, 0.8)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.designHeader}
+        >
+          <View style={styles.header}>
+            <View style={styles.brandRow}>
+              <View style={[styles.logo, styles.designLogo]}>
+                <Image source={require('../../../assets/images/android-icon-foreground.png')} style={styles.logoImage} />
+              </View>
+              <View style={styles.brandCopy}>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.kicker, styles.designKicker]}>
+                  GOOD {timeOfDay.toUpperCase()}
+                </Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.brand, { color: colors.foreground }]}>
+                  {displayName}
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={[styles.kicker, { color: colors.mutedForeground }]}>GOOD {timeOfDay.toUpperCase()}</Text>
-              <Text style={[styles.brand, { color: colors.foreground }]}>{displayName}</Text>
-            </View>
+            <AppPressable
+              testID="home-profile"
+              accessibilityLabel="Open profile"
+              onPress={() => router.push('/profile')}
+              accentColor={colors.primary}
+              style={[
+                styles.avatar,
+                styles.designAvatar,
+                {
+                  backgroundColor: surface.raised,
+                  borderColor: colors.primary,
+                  borderWidth: StyleSheet.hairlineWidth,
+                },
+              ]}
+            >
+              {account?.photoURL ? (
+                <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
+              ) : (
+                <Text style={[styles.avatarText, { color: colors.primary }]}>{avatarInitial}</Text>
+              )}
+            </AppPressable>
           </View>
-          <AppPressable
-            testID="home-profile"
-            accessibilityLabel="Open profile"
-            onPress={() => router.push('/profile')}
-            accentColor={colors.primary}
-            style={[
-              styles.avatar,
-              {
-                backgroundColor: surface.raised,
-                borderColor: border.hairline,
-                borderWidth: StyleSheet.hairlineWidth,
-              },
-            ]}
-          >
-            {account?.photoURL ? (
-              <Image source={{ uri: account.photoURL }} style={styles.avatarImage} />
-            ) : (
-              <Text style={[styles.avatarText, { color: colors.primary }]}>{avatarInitial}</Text>
-            )}
-          </AppPressable>
-        </View>
-
-        <LottieView
-          source={require('../../../assets/123.json')}
-          autoPlay
-          loop
-          style={styles.designAnimation}
-        />
+        </LinearGradient>
 
         <View style={styles.content}>
           <SearchBar onPress={() => router.push('/search')} />
@@ -290,19 +295,23 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  designAnimation: { width: '100%', height: 150, marginBottom: spacing.md },
+  designHeader: { marginHorizontal: spacing.screen, marginBottom: spacing.lg, padding: 14, borderRadius: radius.xl, borderWidth: 1, borderColor: 'rgba(225, 77, 77, 0.18)' },
+  header: { paddingHorizontal: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   content: { paddingHorizontal: spacing.screen },
   skeletonHeader: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   skeletonBrandCopy: { gap: 6, marginLeft: spacing.sm + 2 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+  brandRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+  brandCopy: { flex: 1, minWidth: 0 },
   logo: { width: 54, height: 54, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
   logoImage: { width: '100%', height: '100%', borderRadius: radius.md - 1 },
   kicker: { ...type.kicker },
+  designKicker: { color: '#F28A8A' },
   brand: { fontSize: 21, lineHeight: 26, letterSpacing: -0.5, fontFamily: type.pageTitle.fontFamily },
-  avatar: { width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  avatar: { flexShrink: 0, width: 38, height: 38, marginLeft: spacing.md, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
   avatarText: { fontSize: 15, fontFamily: type.cardTitle.fontFamily },
+  designLogo: { borderRadius: radius.lg, backgroundColor: 'rgba(225, 77, 77, 0.12)' },
+  designAvatar: { shadowColor: '#E14D4D', shadowOpacity: 0.28, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: spacing.xs + 2, marginBottom: spacing.lg },
   dotIndicator: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#3A3D45' },
   rowContent: { paddingRight: spacing.sm },
