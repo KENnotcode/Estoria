@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect, type ReactNode } from 'react';
 import { AppState, Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
@@ -31,7 +32,7 @@ const NOW = Date.now();
 
 function getTimeOfDay(): string {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour < 12) return 'Morning';
   if (hour >= 12 && hour < 18) return 'Afternoon';
   return 'Evening';
 }
@@ -219,6 +220,13 @@ export default function HomeScreen() {
           </AppPressable>
         </View>
 
+        <LottieView
+          source={require('../../../assets/123.json')}
+          autoPlay
+          loop
+          style={styles.designAnimation}
+        />
+
         <View style={styles.content}>
           <SearchBar onPress={() => router.push('/search')} />
 
@@ -283,6 +291,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  designAnimation: { width: '100%', height: 150, marginBottom: spacing.md },
   content: { paddingHorizontal: spacing.screen },
   skeletonHeader: { paddingHorizontal: spacing.screen, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   skeletonBrandCopy: { gap: 6, marginLeft: spacing.sm + 2 },
