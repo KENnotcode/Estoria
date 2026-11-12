@@ -1,11 +1,14 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
 import { MovieCard } from '../../../components/MovieCard';
+import { TrailerModal } from '../../../components/TrailerModal';
+import { VideosRow } from '../../../components/VideosRow';
 import { MovieRailSkeleton, Skeleton } from '../../../components/Skeleton';
 import { NetworkStatusBanner } from '../../../components/NetworkStatusBanner';
 import { useFavorites } from '../../../context/FavoritesContext';
@@ -13,6 +16,7 @@ import { border, radius, spacing, surface, type } from '../../../constants/theme
 import { useColors } from '../../../hooks/useColors';
 import { useMovieDetails, useRecommendations } from '../../../hooks/useMovies';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import type { MovieVideo } from '../../../services/trailers';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -58,6 +62,8 @@ export default function MovieDetailsScreen() {
   const { data: recommendations = [] } = useRecommendations(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isOnline } = useNetworkStatus();
+  const [trailerVisible, setTrailerVisible] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<MovieVideo | null>(null);
 
   if (isLoading) {
     return (
@@ -114,31 +120,59 @@ export default function MovieDetailsScreen() {
           <View style={styles.genreRow}>{movie.genres.map((genre) => <View key={genre} style={[styles.genre, { backgroundColor: surface.sunken, borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}><Text style={[styles.genreText, { color: colors.mutedForeground }]}>{genre}</Text></View>)}</View>
           <Text style={[styles.description, { color: colors.mutedForeground }]}>{movie.description}</Text>
           <View style={styles.actions}>
-            <AppPressable
-              accessibilityLabel="Play preview"
-              onPress={() => Alert.alert('Preview unavailable', 'Trailer previews will be available soon.')}
-              accentColor={colors.primary}
-              style={[styles.primaryAction, { backgroundColor: colors.foreground }]}
-              pressedStyle={styles.actionPressed}
-            >
-              <Feather name="play" size={15} fill={colors.background} color={colors.background} />
-              <Text style={[styles.primaryActionText, { color: colors.background }]}>Play preview</Text>
-            </AppPressable>
-            <AppPressable
-              accessibilityLabel={favorite ? `Remove ${movie.title} from favorites` : `Save ${movie.title} to favorites`}
-              accessibilityState={{ selected: favorite }}
-              onPress={handleFavoritePress}
-              accentColor={colors.primary}
-              style={[styles.secondaryAction, { borderColor: border.hairline }]}
-              pressedStyle={styles.actionPressed}
-            >
-              <Feather name="heart" size={17} color={favorite ? colors.primary : colors.foreground} />
-              <Text style={[styles.secondaryActionText, { color: colors.foreground }]}>{favorite ? 'Saved' : 'Save'}</Text>
-            </AppPressable>
+            <View style={styles.primaryActionSlot}>
+              <AppPressable
+                accessibilityLabel="Watch Now!!"
+                onPress={() => {
+                  setSelectedVideo(null);
+                  setTrailerVisible(true);
+                }}
+                accentColor={colors.primary}
+                style={[styles.primaryAction, { backgroundColor: colors.foreground }]}
+                pressedStyle={styles.actionPressed}
+              >
+                <Feather name="play" size={15} fill={colors.background} color={colors.background} />
+                <Text numberOfLines={1} style={[styles.primaryActionText, { color: colors.background }]}>Watch trailer</Text>
+              </AppPressable>
+            </View>
+            <View style={styles.secondaryActionSlot}>
+              <AppPressable
+                accessibilityLabel={favorite ? `Remove ${movie.title} from favorites` : `Save ${movie.title} to favorites`}
+                accessibilityState={{ selected: favorite }}
+                onPress={handleFavoritePress}
+                accentColor={colors.primary}
+                style={[styles.secondaryAction, { borderColor: border.hairline }]}
+                pressedStyle={styles.actionPressed}
+              >
+                <Feather name="heart" size={17} color={favorite ? colors.primary : colors.foreground} />
+                <Text numberOfLines={1} style={[styles.secondaryActionText, { color: colors.foreground }]}>{favorite ? 'Saved' : 'Save'}</Text>
+              </AppPressable>
+            </View>
           </View>
+          <VideosRow
+            movieId={movie.id}
+            onSelect={(video) => {
+              setSelectedVideo(video);
+              setTrailerVisible(true);
+            }}
+          />
           {recommendations.length ? <><Text style={[styles.recommendationTitle, { color: colors.foreground }]}>You may also like</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recommendationRow}>{recommendations.map((item) => <MovieCard key={item.id} movie={item} onPress={() => router.push({ pathname: '/movie/[id]', params: { id: item.id } })} />)}</ScrollView></> : null}
         </View>
       </ScrollView>
+      <TrailerModal
+        movieId={movie.id}
+        visible={trailerVisible}
+        videoKey={selectedVideo?.key}
+        videoName={selectedVideo?.name}
+        movieTitle={movie.title}
+        releaseYear={movie.releaseYear}
+        runtime={movie.runtime}
+        genre={movie.genres[0]}
+        onClose={() => {
+          setTrailerVisible(false);
+          setSelectedVideo(null);
+        }}
+      />
     </View>
   );
 }
@@ -171,10 +205,12 @@ const styles = StyleSheet.create({
   genre: { paddingHorizontal: spacing.md - 2, paddingVertical: 7, borderRadius: radius.sm },
   genreText: { ...type.caption },
   description: { ...type.body, marginTop: spacing.lg + 4 },
-  actions: { flexDirection: 'row', gap: spacing.md - 2, marginTop: spacing.xl },
-  primaryAction: { flex: 1, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm },
+  actions: { flexDirection: 'row', gap: spacing.md - 2, marginTop: spacing.xl, alignItems: 'stretch' },
+  primaryActionSlot: { flex: 1, minWidth: 0 },
+  secondaryActionSlot: { width: 112 },
+  primaryAction: { width: '100%', height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md },
   primaryActionText: { ...type.button },
-  secondaryAction: { width: 106, height: 48, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm - 1 },
+  secondaryAction: { width: '100%', height: 48, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm - 1, paddingHorizontal: spacing.md },
   secondaryActionText: { ...type.label },
   actionPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   recommendationTitle: { ...type.sectionTitle, marginTop: spacing['2xl'] - 4, marginBottom: spacing.md + 3 },

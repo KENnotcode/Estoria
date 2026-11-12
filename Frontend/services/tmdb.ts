@@ -29,6 +29,15 @@ export interface TmdbMovie {
   original_language?: string;
 }
 
+export interface TmdbVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official: boolean;
+}
+
 interface TmdbListResponse<T> {
   page: number;
   results: T[];
@@ -108,6 +117,13 @@ export class TmdbClient {
     return this.request<TmdbMovie>(`/movie/${movieId}`);
   }
 
+  getMovieVideos(movieId: number, signal?: AbortSignal): Promise<{ results: TmdbVideo[] }> {
+    return this.request<{ results: TmdbVideo[] }>(`/movie/${movieId}/videos`, {
+      language: 'en-US',
+      include_video_language: 'en,null',
+    }, signal);
+  }
+
   getDiscover(genreId: number, page = 1): Promise<TmdbMovie[]> {
     return this.list('/discover/movie', page, {
       with_genres: String(genreId),
@@ -142,6 +158,7 @@ export class TmdbClient {
   private async request<T>(
     endpoint: string,
     params: Record<string, string> = {},
+    signal?: AbortSignal,
   ): Promise<T> {
     const url = new URL(`${API_BASE_URL}${endpoint}`);
     url.searchParams.set('api_key', this.apiKey);
@@ -150,7 +167,7 @@ export class TmdbClient {
       url.searchParams.set(key, value);
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error(
         `TMDB request failed (${response.status} ${response.statusText}): ${endpoint}`,

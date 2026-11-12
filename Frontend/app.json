@@ -3,7 +3,7 @@
     "name": "Estoria",
     "slug": "Estoria",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/bastaIcon2.png",
     "scheme": "estoria",
     "userInterfaceStyle": "automatic",
@@ -54,6 +54,7 @@
       ],
       "expo-font",
       "expo-image",
+      "expo-screen-orientation",
       "expo-status-bar",
       "expo-web-browser"
     ],
