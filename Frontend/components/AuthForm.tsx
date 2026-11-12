@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
-  ImageBackground,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -164,17 +163,18 @@ export function AuthForm({ mode }: AuthFormProps) {
       behavior={isIOS ? 'padding' : undefined}
     >
       <View style={styles.backdropLayer} pointerEvents="none">
-        <ImageBackground
-          source={backdropMovie?.backdrop ?? FALLBACK_BACKDROP}
-          resizeMode="cover"
-          style={styles.backdrop}
-        >
+        <View style={styles.backdrop}>
+          <Image
+            source={backdropMovie?.backdrop ?? FALLBACK_BACKDROP}
+            resizeMode="cover"
+            style={styles.backdropImage}
+          />
           <LinearGradient
             colors={['rgba(12, 13, 16, 0.66)', 'rgba(12, 13, 16, 0.4)', colors.background]}
             locations={[0, 0.42, 0.94]}
             style={StyleSheet.absoluteFill}
           />
-        </ImageBackground>
+        </View>
       </View>
 
       <ScrollView
@@ -461,6 +461,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   backdropLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   backdrop: { flex: 1 },
+  backdropImage: { ...StyleSheet.absoluteFillObject },
   content: { paddingHorizontal: spacing.screen, maxWidth: 560, width: '100%', alignSelf: 'center' },
   backButton: {
     width: 44,

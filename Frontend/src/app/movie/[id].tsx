@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppPressable } from '../../../components/AppPressable';
 import { EmptyState } from '../../../components/EmptyState';
@@ -95,7 +95,8 @@ export default function MovieDetailsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 50 }}>
-        <ImageBackground source={movie.backdrop} resizeMode="cover" style={styles.backdrop}>
+        <View style={styles.backdrop}>
+          <Image source={movie.backdrop} resizeMode="cover" style={styles.backdropImage} />
           <LinearGradient colors={['rgba(12,13,16,0.1)', colors.background]} locations={[0.35, 1]} style={styles.backdropGradient}>
             <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
               <AppPressable accessibilityLabel="Go back" onPress={() => router.back()} accentColor={colors.primary} style={[styles.iconButton, { borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}>
@@ -106,7 +107,7 @@ export default function MovieDetailsScreen() {
               </AppPressable>
             </View>
           </LinearGradient>
-        </ImageBackground>
+        </View>
         <View style={styles.content}>
           <Text style={[styles.title, { color: colors.foreground }]}>{movie.title}</Text>
           <View style={styles.metaRow}>{isUpcoming && releaseEta ? <Text style={[styles.meta, styles.numeric, { color: colors.tint }]}>Estimated release:<Text style={[styles.meta, { color: colors.foreground }]}>  {releaseEta}</Text></Text> : <View style={styles.rating}><Feather name="star" size={14} color={colors.primary} /><Text style={[styles.metaStrong, { color: colors.foreground }]}>{movie.rating.toFixed(1)}</Text></View>}{!isUpcoming && movie.runtime != null ? <><Text style={[styles.dot, { color: colors.mutedForeground }]}>·</Text><Text style={[styles.meta, styles.numeric, { color: colors.mutedForeground }]}>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</Text></> : null}</View>
@@ -145,6 +146,7 @@ export default function MovieDetailsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   backdrop: { height: 392 },
+  backdropImage: { ...StyleSheet.absoluteFillObject },
   backdropGradient: { flex: 1 },
   topBar: { paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: {

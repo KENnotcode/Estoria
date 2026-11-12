@@ -39,7 +39,7 @@ export function MovieCard({
 
   return (
     <View testID={`movie-card-${movie.id}`} style={[styles.card, { width }]}>
-      <View style={styles.posterContainer}>
+      <View style={[styles.posterContainer, { width, height: width / poster.aspectRatio }]}>
         <AppPressable
           accessibilityLabel={`Open ${movie.title}`}
           onPress={onPress}
@@ -49,7 +49,7 @@ export function MovieCard({
           pressedStyle={styles.posterPressed}
         >
           <Image
-            source={movie.poster}
+            source={Array.isArray(movie.poster) ? movie.poster[0] : movie.poster}
             contentFit="cover"
             style={[styles.posterImage, { backgroundColor: surface.sunken }]}
           />
@@ -67,22 +67,7 @@ export function MovieCard({
             </View>
           ) : null}
         </AppPressable>
-
-        <AppPressable
-          testID={`favorite-${movie.id}`}
-          accessibilityLabel={
-            favorite ? `Remove ${movie.title} from favorites` : `Add ${movie.title} to favorites`
-          }
-          accessibilityState={{ selected: favorite }}
-          onPress={handleFavoritePress}
-          disabled={false}
-          accentColor={colors.primary}
-          showFocusRing={false}
-          hitSlop={8}
-          style={[styles.favorite, { backgroundColor: colors.scrim, borderColor: border.hairline, borderWidth: StyleSheet.hairlineWidth }]}
-        >
-          <Feather name="heart" size={14} color={favorite ? colors.primary : colors.foreground} />
-        </AppPressable>
+        
       </View>
 
       <AppPressable
@@ -114,8 +99,11 @@ const styles = StyleSheet.create({
   },
   posterContainer: {
     position: 'relative',
+    width: '100%',
+    aspectRatio: poster.aspectRatio,
   },
   poster: {
+    width: '100%',
     borderRadius: radius.md,
     overflow: 'hidden',
     // Crisp edge so the poster reads as a cut-out, not a floating glow.
@@ -134,6 +122,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 9,
     right: 9,
+    zIndex: 2,
+    elevation: 2,
     width: 28,
     height: 28,
     borderRadius: radius.pill,

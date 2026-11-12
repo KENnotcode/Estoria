@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { SymbolView } from 'expo-symbols';
 
 function NativeTabLayout() {
@@ -31,6 +31,10 @@ function NativeTabLayout() {
       </NativeTabs.Trigger>
     </NativeTabs>
   );
+}
+
+function resolveIconColor(color: unknown, fallback: string): string {
+  return typeof color === 'string' ? color : fallback;
 }
 
 function ClassicTabLayout() {
@@ -75,36 +79,50 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
+          tabBarIcon: ({ color }) => {
+            const iconColor = resolveIconColor(color, colors.mutedForeground);
+            return isIOS ? (
+              <SymbolView name="house" tintColor={iconColor} size={24} />
             ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+              <Feather name="home" size={22} color={iconColor} />
+            );
+          },
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="magnifyingglass" tintColor={color} size={24} /> : <Feather name="search" size={22} color={color} />,
+          tabBarIcon: ({ color }) => {
+            const iconColor = resolveIconColor(color, colors.mutedForeground);
+            return isIOS
+              ? <SymbolView name="magnifyingglass" tintColor={iconColor} size={24} />
+              : <Feather name="search" size={22} color={iconColor} />;
+          },
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: 'Favorites',
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="heart" tintColor={color} size={24} /> : <Feather name="heart" size={22} color={color} />,
+          tabBarIcon: ({ color }) => {
+            const iconColor = resolveIconColor(color, colors.mutedForeground);
+            return isIOS
+              ? <SymbolView name="heart" tintColor={iconColor} size={24} />
+              : <Feather name="heart" size={22} color={iconColor} />;
+          },
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="person" tintColor={color} size={24} /> : <Feather name="user" size={22} color={color} />,
+          tabBarIcon: ({ color }) => {
+            const iconColor = resolveIconColor(color, colors.mutedForeground);
+            return isIOS
+              ? <SymbolView name="person" tintColor={iconColor} size={24} />
+              : <Feather name="user" size={22} color={iconColor} />;
+          },
         }}
       />
     </Tabs>

@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
-  ImageBackground,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -112,13 +112,12 @@ export function HeroCarousel({ movies, onSelect, onActiveIndexChange }: HeroCaro
         }
       >
         {slides.map((movie, index) => (
-          <ImageBackground
+          <View
             key={`${movie.id}-${index}`}
-            source={movie.backdrop}
-            resizeMode="cover"
-            imageStyle={styles.image}
             style={[styles.slide, { width: itemWidth }]}
-          />
+          >
+            <Image source={movie.backdrop} resizeMode="cover" style={[StyleSheet.absoluteFillObject, styles.image]} />
+          </View>
         ))}
       </ScrollView>
 
