@@ -50,3 +50,7 @@ export async function recordWatch(
   await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
   return updated;
 }
+
+export async function clearWatchHistory(storageKey: string): Promise<void> {
+  await AsyncStorage.removeItem(storageKey);
+}

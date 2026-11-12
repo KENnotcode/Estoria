@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
+  clearWatchHistory,
   fetchWatchHistory,
   recordWatch,
   type WatchHistoryEntry,
@@ -19,6 +20,7 @@ type WatchHistoryContextValue = {
   isLoaded: boolean;
   error: string | null;
   recordMovie: (movieId: string) => Promise<void>;
+  clearHistory: () => Promise<void>;
 };
 
 const WatchHistoryContext = createContext<WatchHistoryContextValue | null>(null);
@@ -65,12 +67,23 @@ export function WatchHistoryProvider({ children }: { children: ReactNode }) {
     setLoadedAccount(account?.uid ?? null);
   }, [account?.uid, storageKey]);
 
+  const clearHistory = useCallback(async () => {
+    if (!storageKey) {
+      throw new Error('Sign in to clear watch history.');
+    }
+
+    await clearWatchHistory(storageKey);
+    setEntries([]);
+    setLoadedAccount(account?.uid ?? null);
+  }, [account?.uid, storageKey]);
+
   const value = useMemo<WatchHistoryContextValue>(() => ({
     entries: account && loadedAccount === account.uid ? entries : [],
     isLoaded: !authLoading && (!account || loadedAccount === account.uid),
     error,
     recordMovie,
-  }), [account, authLoading, entries, error, loadedAccount, recordMovie]);
+    clearHistory,
+  }), [account, authLoading, entries, error, loadedAccount, recordMovie, clearHistory]);
 
   return <WatchHistoryContext.Provider value={value}>{children}</WatchHistoryContext.Provider>;
 }
