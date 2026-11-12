@@ -142,7 +142,7 @@ export default function MovieDetailsScreen() {
                 pressedStyle={styles.actionPressed}
               >
                 <Feather name="play" size={15} fill={colors.background} color={colors.background} />
-                <Text numberOfLines={1} style={[styles.primaryActionText, { color: colors.background }]}>Watch trailer</Text>
+                <Text numberOfLines={1} style={[styles.primaryActionText, { color: colors.background }]}>Watch Now!!</Text>
               </AppPressable>
             </View>
             <View style={styles.secondaryActionSlot}>
