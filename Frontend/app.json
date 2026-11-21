@@ -9,9 +9,13 @@
     "userInterfaceStyle": "automatic",
     "extra": {
       "tmdbApiKey": "f855e6aaf1e6cb74c0905c5b2d67c145",
-      "router": {},
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
       "eas": {
-        "projectId": "c9e0ad40-a1a5-479d-969f-107279af1e32"
+        "projectId": "6209f54c-fabd-493e-8f69-6a4f3a3bd396"
       }
     },
     "ios": {
@@ -61,6 +65,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "bastasecret"
   }
 }
